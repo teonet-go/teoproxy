@@ -6,4 +6,6 @@ cmd/websocket/client
 cmd/websocket/client-gui
 cmd/websocket/client-gui/serve
 cmd/websocket/server
+ws/client
+ws/server
 )
