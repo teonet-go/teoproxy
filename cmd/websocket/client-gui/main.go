@@ -1,14 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"syscall/js"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
-	"github.com/gorilla/websocket"
+	"github.com/teonet-go/teoproxy/ws/client"
 )
 
 //go:generate fyne package -os wasm
@@ -19,121 +15,9 @@ func main() {
 	w.SetContent(widget.NewLabel("Hello Fyne!"))
 	w.Resize(fyne.NewSize(200, 200))
 
-	ws := NewWsClient()
+	ws := client.NewWsClient()
 	ws.Connect()
-	ws.sendMessages("Hello, server!")
+	ws.SendMessages("Hello, server!")
 
 	w.ShowAndRun()
 }
-
-// WsClient is javascript websocket client to use in wasm application.
-type WsClient struct {
-	js.Value
-}
-
-func NewWsClient() *WsClient {
-	return &WsClient{}
-}
-
-func (ws *WsClient) Connect() {
-	done := make(chan struct{}, 0)
-
-	// Create a JavaScript WebSocket object
-	js.Global().Set("socket", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) != 1 {
-			fmt.Println("Invalid number of arguments")
-			return nil
-		}
-
-		url := args[0].String()
-		fmt.Println("Url:", url)
-
-		// Create a WebSocket connection
-		ws.Value = js.Global().Get("WebSocket").New(url)
-
-		// WebSocket open event handler
-		ws.Value.Set("onopen", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			fmt.Println("WebSocket connection established.")
-			// Send a message through the WebSocket
-			ws.Value.Call("send", "Hello, server! (inside js)")
-			done <- struct{}{}
-			return nil
-		}))
-
-		// WebSocket message event handler
-		ws.Value.Set("onmessage", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			message := args[0].Get("data").String()
-			fmt.Println("Message from server:", message)
-			// Handle incoming messages from the server
-			return nil
-		}))
-
-		// WebSocket close event handler
-		ws.Value.Set("onclose", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			fmt.Println("WebSocket connection closed.")
-			// Handle WebSocket connection closure
-			return nil
-		}))
-
-		// WebSocket error event handler
-		ws.Value.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			// message := args[0].Get("error").String()
-			fmt.Println("WebSocket error:", args[0])
-			// Handle WebSocket errors
-			return nil
-		}))
-
-		return nil
-	}))
-
-	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8080/ws")
-
-	<-done
-
-	fmt.Println("WebSocket connection done.")
-}
-
-func (ws *WsClient) sendMessages(message string) {
-	// Send a message to the server
-	ws.Value.Call("send", message)
-}
-
-func (*WsClient) receiveMessages(conn *websocket.Conn) {
-	for {
-		// Read a message from the server
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Error receiving message from WebSocket server:", err)
-			return
-		}
-
-		// Process the received message
-		log.Println("Received message from server:", string(message))
-	}
-}
-
-// Connect to websocket server in native application
-// func connect() {
-// 	// WebSocket server URL
-// 	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
-
-// 	// Establish a WebSocket connection
-// 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-// 	if err != nil {
-// 		log.Fatal("Error connecting to WebSocket server: ", err)
-// 	}
-// 	defer conn.Close()
-
-// 	// Start a goroutine to receive messages from the server
-// 	go receiveMessages(conn)
-
-// 	// Send a message to the server
-// 	err = conn.WriteMessage(websocket.TextMessage, []byte("Hello, server!"))
-// 	if err != nil {
-// 		log.Println("Error sending message to WebSocket server:", err)
-// 	}
-
-// 	// Keep the client running
-// 	select {}
-// }
