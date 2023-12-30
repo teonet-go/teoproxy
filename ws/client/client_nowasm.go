@@ -18,9 +18,9 @@ func NewWsClient() *WsClient {
 	return &WsClient{}
 }
 
-func (ws *WsClient) SendMessages(message string) {
+func (ws *WsClient) SendMessage(message []byte) {
 	// Send a message to the websocket server
-	ws.Conn.WriteMessage(websocket.TextMessage, []byte(message))
+	ws.Conn.WriteMessage(websocket.TextMessage, message)
 }
 
 func (ws *WsClient) receiveMessages() {
@@ -38,14 +38,15 @@ func (ws *WsClient) receiveMessages() {
 }
 
 // Connect to websocket server in native application
-func (ws *WsClient) Connect() {
+func (ws *WsClient) Connect() (err error) {
 	// WebSocket server URL
-	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: "localhost:8081", Path: "/ws"}
 
 	// Establish a WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("Error connecting to WebSocket server: ", err)
+		log.Println("Error connecting to WebSocket server: ", err)
+		return
 	}
 	// defer conn.Close()
 	ws.Conn = conn
@@ -54,11 +55,14 @@ func (ws *WsClient) Connect() {
 	go ws.receiveMessages()
 
 	// Send a message to the server
-	err = conn.WriteMessage(websocket.TextMessage, []byte("Hello, server!"))
+	err = conn.WriteMessage(websocket.TextMessage, []byte("Hello, server! (inside go)"))
 	if err != nil {
 		log.Println("Error sending message to WebSocket server:", err)
+		return
 	}
 
 	// Keep the client running
-	select {}
+	// select {}
+
+	return
 }

@@ -4,10 +4,7 @@ package client
 
 import (
 	"fmt"
-	"log"
 	"syscall/js"
-
-	"github.com/gorilla/websocket"
 )
 
 // WsClient is javascript websocket client to use in wasm application.
@@ -19,7 +16,7 @@ func NewWsClient() *WsClient {
 	return &WsClient{}
 }
 
-func (ws *WsClient) Connect() {
+func (ws *WsClient) Connect() (err error) {
 	done := make(chan struct{}, 0)
 
 	// Create a JavaScript WebSocket object
@@ -39,7 +36,7 @@ func (ws *WsClient) Connect() {
 		ws.Value.Set("onopen", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			fmt.Println("WebSocket connection established.")
 			// Send a message through the WebSocket
-			ws.Value.Call("send", "Hello, server! (inside js)")
+			ws.SendMessage([]byte("Hello, server! (inside js..)"))
 			done <- struct{}{}
 			return nil
 		}))
@@ -71,16 +68,18 @@ func (ws *WsClient) Connect() {
 	}))
 
 	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8080/ws")
+	js.Global().Call("socket", "ws://localhost:8081/ws")
 
 	<-done
 
-	fmt.Println("WebSocket connection done.")
+	fmt.Println("WebSocket connection done...")
+	return
 }
 
-func (ws *WsClient) SendMessages(message string) {
+func (ws *WsClient) SendMessage(message []byte) {
 	// Send a message to the websocket server
-	ws.Value.Call("send", message)
+	ws.Value.Call("send", string(message))
+	fmt.Println("Message sent to server:", message)
 }
 
 // func (*WsClient) receiveMessages(conn *websocket.Conn) {

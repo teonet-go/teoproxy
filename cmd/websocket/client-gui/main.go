@@ -16,8 +16,10 @@ func main() {
 	w.Resize(fyne.NewSize(200, 200))
 
 	ws := client.NewWsClient()
-	ws.Connect()
-	ws.SendMessages("Hello, server!")
+	err := ws.Connect()
+	if err == nil {
+		ws.SendMessage([]byte{1, 2, 3, 4, 5})
+	}
 
 	w.ShowAndRun()
 }

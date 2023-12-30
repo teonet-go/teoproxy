@@ -37,7 +37,7 @@ func handleConnection(conn *websocket.Conn) {
 
 func processMessage(conn *websocket.Conn, message []byte) {
 	// Process message logic here
-	log.Println("Received message:", string(message))
+	log.Println("Received message:", message, string(message))
 
 	// Write response to client
 	err := conn.WriteMessage(websocket.TextMessage, []byte("Message received"))
