@@ -52,7 +52,7 @@ func main() {
 	http.HandleFunc("/ws", serve.HandleWebSocket)
 
 	// Start the web server and listen on port 8080
-	err = http.ListenAndServe(":8082", nil)
+	err = http.ListenAndServe(":8083", nil)
 	if err != nil {
 		fmt.Println("Server error:", err)
 	}

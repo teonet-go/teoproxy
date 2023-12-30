@@ -59,8 +59,6 @@ func (c Command) String() string {
 // It returns a byte slice containing the binary representation of the struct
 // and an error if there was an issue during the conversion.
 func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
-	data = make([]byte, 0, len(c.Data)+2)
-	
 
 	if c.Err != nil {
 		data = append(data, byte(c.Cmd|0x80))

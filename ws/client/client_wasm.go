@@ -3,6 +3,7 @@
 package client
 
 import (
+	"encoding/base64"
 	"fmt"
 	"syscall/js"
 )
@@ -36,7 +37,6 @@ func (ws *WsClient) Connect() (err error) {
 		ws.Value.Set("onopen", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			fmt.Println("WebSocket connection established.")
 			// Send a message through the WebSocket
-			ws.SendMessage([]byte("Hello, server! (inside js..)"))
 			done <- struct{}{}
 			return nil
 		}))
@@ -68,7 +68,7 @@ func (ws *WsClient) Connect() (err error) {
 	}))
 
 	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8082/ws")
+	js.Global().Call("socket", "ws://localhost:8083/ws")
 
 	<-done
 
@@ -78,7 +78,7 @@ func (ws *WsClient) Connect() (err error) {
 
 func (ws *WsClient) SendMessage(message []byte) {
 	// Send a message to the websocket server
-	ws.Value.Call("send", string(message))
+	ws.Value.Call("send", base64.StdEncoding.EncodeToString(message))
 	fmt.Println("Message sent to server:", message)
 }
 

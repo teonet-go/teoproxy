@@ -3,6 +3,8 @@
 package client
 
 import (
+	"fmt"
+
 	ws "github.com/teonet-go/teoproxy/ws/client"
 	"github.com/teonet-go/teoproxy/ws/command"
 )
@@ -37,6 +39,7 @@ func (teo *Teonet) Disconnect() (err error) {
 func (teo *Teonet) ConnectTo(peer string) (err error) {
 	cmd := &command.TeonetCmd{Cmd: command.ConnectTo, Data: []byte(peer)}
 	data, _ := cmd.MarshalBinary()
+	fmt.Println("SendMessage ConnectTo:", data)
 	teo.ws.SendMessage(data)
 	return
 }

@@ -26,7 +26,7 @@ func main() {
 	// 	ws.SendMessage([]byte{1, 2, 3, 4, 5})
 	// }
 
-	const peer = "teoFortune"
+	const peer = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF" // teoFortune peer
 
 	// Start Teonet proxy client
 	teo, err := client.New(appShort)
