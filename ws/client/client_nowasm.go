@@ -45,7 +45,7 @@ func (ws *WsClient) Connect() (err error) {
 	// Establish a WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Println("Error connecting to WebSocket server: ", err)
+		log.Println("Error connecting to WebSocket server:", err)
 		return
 	}
 	// defer conn.Close()

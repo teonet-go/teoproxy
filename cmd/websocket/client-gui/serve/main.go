@@ -7,6 +7,10 @@ import (
 	"github.com/teonet-go/teoproxy/teonet/server"
 )
 
+const (
+	appShort = "client-gui-serve"
+)
+
 // go:embed wasm/*
 // var fs embed.FS
 
@@ -40,10 +44,15 @@ func main() {
 	//http.Handle("/", http.FileServer(http.FS(fs)))
 
 	// Register websocket server
-	http.HandleFunc("/ws", server.New().HandleWebSocket)
+	serve, err := server.New(appShort)
+	if err != nil {
+		fmt.Println("Create teonet proxy server error:", err)
+		return
+	}
+	http.HandleFunc("/ws", serve.HandleWebSocket)
 
 	// Start the web server and listen on port 8080
-	err := http.ListenAndServe(":8082", nil)
+	err = http.ListenAndServe(":8082", nil)
 	if err != nil {
 		fmt.Println("Server error:", err)
 	}

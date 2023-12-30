@@ -28,7 +28,7 @@ func (teo *Teonet) Connect() (err error) {
 }
 
 func (teo *Teonet) Disconnect() (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.Dsconnect}
+	cmd := &command.TeonetCmd{Cmd: command.Disconnect}
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return

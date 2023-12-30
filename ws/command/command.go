@@ -7,7 +7,7 @@ import "fmt"
 const (
 	cmdNone Command = iota
 	Connect
-	Dsconnect
+	Disconnect
 	ConnectTo
 	NewAPIClient
 	cmdCount
@@ -39,7 +39,7 @@ func (c Command) String() string {
 	switch c {
 	case Connect:
 		return "Connect"
-	case Dsconnect:
+	case Disconnect:
 		return "Dsconnect"
 	case ConnectTo:
 		return "ConnectTo"
