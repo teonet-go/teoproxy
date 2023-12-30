@@ -1,7 +1,10 @@
 // Package command provides teonet proxy server commands binary protocol.
 package command
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Teonet proxy commands
 const (
@@ -24,6 +27,7 @@ var (
 type TeonetCmd struct {
 	Cmd  Command
 	Data []byte
+	Err  error
 }
 
 type Command byte
@@ -36,7 +40,7 @@ type Command byte
 // the corresponding string. Otherwise, it returns "Unknown".
 // String is part of the fmt.Stringer interface.
 func (c Command) String() string {
-	switch c {
+	switch c & 0x7F {
 	case Connect:
 		return "Connect"
 	case Disconnect:
@@ -56,8 +60,16 @@ func (c Command) String() string {
 // and an error if there was an issue during the conversion.
 func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 	data = make([]byte, 0, len(c.Data)+2)
-	data = append(data, byte(c.Cmd))
-	data = append(data, c.Data...)
+	
+
+	if c.Err != nil {
+		data = append(data, byte(c.Cmd|0x80))
+		data = append(data, []byte(c.Err.Error())...)
+	} else {
+		data = append(data, byte(c.Cmd))
+		data = append(data, c.Data...)
+	}
+
 	data = append(data, c.checksum(data))
 
 	return
@@ -67,14 +79,14 @@ func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 //
 // The function takes a byte slice `data` as input and unmarshals it into the
 // `TeonetCmd` object. It performs the following steps:
-// - Checks the length of the data slice. If it is less than 2, it returns an
-//   error `ErrNotEnoughData`.
-// - Checks the checksum of the data. If it does not match the checksum at the
-//   end of the data slice, it returns an error `ErrWrongChecksum`.
-// - Sets the command byte from the data slice at index 0.
-// - Sets the data slice from the data slice at index 1 to the second last
-//   element.
-// - Returns any error encountered during the unmarshaling process.
+//   - Checks the length of the data slice. If it is less than 2, it returns an
+//     error `ErrNotEnoughData`.
+//   - Checks the checksum of the data. If it does not match the checksum at the
+//     end of the data slice, it returns an error `ErrWrongChecksum`.
+//   - Sets the command byte from the data slice at index 0.
+//   - Sets the data slice from the data slice at index 1 to the second last
+//     element.
+//   - Returns any error encountered during the unmarshaling process.
 //
 // Parameters:
 // - `data []byte`: The binary data to be unmarshaled.
@@ -95,15 +107,21 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 
+	cmd := data[0] & 0x7F
+
 	// Check command number
-	if !(data[0] > byte(cmdNone) && data[0] < byte(cmdCount)) {
+	if !(cmd > byte(cmdNone) && cmd < byte(cmdCount)) {
 		err = ErrUnknownCommand
 		return
 	}
 
 	// Get command and data
-	c.Cmd = Command(data[0])
-	c.Data = data[1 : len(data)-1]
+	c.Cmd = Command(cmd)
+	if data[0]&0x80 == 0 {
+		c.Data = data[1 : len(data)-1]
+	} else {
+		c.Err = errors.New(string(data[1 : len(data)-1]))
+	}
 
 	return
 }

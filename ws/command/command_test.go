@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 )
 
@@ -76,4 +77,25 @@ func TestMarshalBinary(t *testing.T) {
 		t.Errorf("expected data: %v, got: %v", cmd.Data, unmarshaledCmd.Data)
 	}
 
+	// Test case 3: Create a new TeonetCmd instance with error
+	cmd = &TeonetCmd{Cmd: Connect, Err: errors.New("test error")}
+	data, err = cmd.MarshalBinary()
+	if err != nil {
+		t.Errorf("error converting to binary, data: %v, error: %v", data, err)
+	}
+
+	// Unmarshal the binary data and compare it with the original TeonetCmd
+	unmarshaledCmd = &TeonetCmd{}
+	err = unmarshaledCmd.UnmarshalBinary(data)
+	if err != nil {
+		t.Errorf("error unmarshaling binary data: %v", err)
+	}
+
+	if unmarshaledCmd.Cmd != cmd.Cmd {
+		t.Errorf("expected cmd: %v, got: %v", cmd.Cmd, unmarshaledCmd.Cmd)
+	}
+
+	if unmarshaledCmd.Err.Error() != cmd.Err.Error() {
+		t.Errorf("expected error: %v, got: %v", cmd.Data, unmarshaledCmd.Data)
+	}
 }
