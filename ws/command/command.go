@@ -5,7 +5,7 @@ import "fmt"
 
 // Teonet proxy commands
 const (
-	cmdNone = iota
+	cmdNone Command = iota
 	Connect
 	Dsconnect
 	ConnectTo
@@ -22,8 +22,32 @@ var (
 // TeonetCmd represents a command packet in the Teonet proxy protocol. It
 // contains a command byte and a data slice.
 type TeonetCmd struct {
-	Cmd  byte
+	Cmd  Command
 	Data []byte
+}
+
+type Command byte
+
+// String returns the string representation of the Command.
+//
+// It returns a string that represents the value of the Command
+// constant. If the value is one of the predefined constants
+// (Connect, Dsconnect, ConnectTo, NewAPIClient), it returns
+// the corresponding string. Otherwise, it returns "Unknown".
+// String is part of the fmt.Stringer interface.
+func (c Command) String() string {
+	switch c {
+	case Connect:
+		return "Connect"
+	case Dsconnect:
+		return "Dsconnect"
+	case ConnectTo:
+		return "ConnectTo"
+	case NewAPIClient:
+		return "NewAPIClient"
+	default:
+		return "Unknown"
+	}
 }
 
 // MarshalBinary converts the TeonetCmd struct into a binary representation.
@@ -32,7 +56,7 @@ type TeonetCmd struct {
 // and an error if there was an issue during the conversion.
 func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 	data = make([]byte, 0, len(c.Data)+2)
-	data = append(data, c.Cmd)
+	data = append(data, byte(c.Cmd))
 	data = append(data, c.Data...)
 	data = append(data, c.checksum(data))
 
@@ -72,13 +96,13 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 	}
 
 	// Check command number
-	if !(data[0] > cmdNone && data[0] < cmdCount) {
+	if !(data[0] > byte(cmdNone) && data[0] < byte(cmdCount)) {
 		err = ErrUnknownCommand
 		return
 	}
 
 	// Get command and data
-	c.Cmd = data[0]
+	c.Cmd = Command(data[0])
 	c.Data = data[1 : len(data)-1]
 
 	return

@@ -21,7 +21,7 @@ func New() (teo *TeonetServer) {
 func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 
 	// Process message logic here
-	log.Println("Received message (teonet proxy server):", message, string(message))
+	// log.Println("Received message (teonet proxy server):", message, string(message))
 
 	// Check teonet command
 	cmd := &command.TeonetCmd{}
@@ -30,6 +30,7 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 		log.Println("Can't unmarshal teonet command, error:", err)
 		return
 	}
+	log.Println("Get Teonet proxy command:", cmd.Cmd.String(), cmd.Data, string(cmd.Data))
 
 	// Write response to client
 	err = conn.WriteMessage(websocket.TextMessage, []byte("Message received"))
