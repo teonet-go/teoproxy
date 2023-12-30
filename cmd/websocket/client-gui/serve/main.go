@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/teonet-go/teoproxy/ws/server"
+	"github.com/teonet-go/teoproxy/teonet/server"
 )
 
 // go:embed wasm/*
@@ -40,7 +40,7 @@ func main() {
 	//http.Handle("/", http.FileServer(http.FS(fs)))
 
 	// Register websocket server
-	http.HandleFunc("/ws", server.HandleWebSocket)
+	http.HandleFunc("/ws", server.New().HandleWebSocket)
 
 	// Start the web server and listen on port 8080
 	err := http.ListenAndServe(":8082", nil)

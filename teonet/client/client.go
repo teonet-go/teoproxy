@@ -21,23 +21,29 @@ func New(appShort string) (teo *Teonet, err error) {
 
 // Connect to Teonet
 func (teo *Teonet) Connect() (err error) {
-	teo.ws.SendMessage([]byte{command.Connect})
+	cmd := &command.TeonetCmd{Cmd: command.Connect}
+	data, _ := cmd.MarshalBinary()
+	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) Disconnect() (err error) {
-	teo.ws.SendMessage([]byte{command.Dsconnect})
+	cmd := &command.TeonetCmd{Cmd: command.Dsconnect}
+	data, _ := cmd.MarshalBinary()
+	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) ConnectTo(peer string) (err error) {
-	data := append([]byte{command.ConnectTo}, []byte(peer)...)
+	cmd := &command.TeonetCmd{Cmd: command.ConnectTo, Data: []byte(peer)}
+	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) NewAPIClient(peer string) (api *ws.WsClient, err error) {
-	data := append([]byte{command.NewAPIClient}, []byte(peer)...)
+	cmd := &command.TeonetCmd{Cmd: command.NewAPIClient, Data: []byte(peer)}
+	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }

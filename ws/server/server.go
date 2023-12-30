@@ -7,7 +7,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+type WsServer struct {
+	processMessage []func(conn *websocket.Conn, message []byte)
+}
+
+func New(processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
+	return &WsServer{processMessage: processMessage}
+}
+
+func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -16,10 +24,10 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle websocket connection
-	go handleConnection(conn)
+	go s.handleConnection(conn)
 }
 
-func handleConnection(conn *websocket.Conn) {
+func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
 	for {
@@ -31,7 +39,13 @@ func handleConnection(conn *websocket.Conn) {
 		}
 
 		// Process message
-		processMessage(conn, message)
+		if len(s.processMessage) == 0 {
+			processMessage(conn, message)
+			continue
+		}
+		for _, f := range s.processMessage {
+			f(conn, message)
+		}
 	}
 }
 
