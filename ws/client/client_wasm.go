@@ -68,7 +68,7 @@ func (ws *WsClient) Connect() (err error) {
 	}))
 
 	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8081/ws")
+	js.Global().Call("socket", "ws://localhost:8082/ws")
 
 	<-done
 

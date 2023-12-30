@@ -8,4 +8,5 @@ cmd/websocket/client-gui/serve
 cmd/websocket/server
 ws/client
 ws/server
+ws/command
 )
