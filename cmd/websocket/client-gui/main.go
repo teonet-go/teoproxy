@@ -14,6 +14,10 @@ import (
 const appShort = "client-gui"
 
 func main() {
+
+	// Set log with microseconds
+	// log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+
 	app := app.New()
 	w := app.NewWindow("Hello")
 	w.SetContent(widget.NewLabel("Hello Fyne!"))
@@ -49,7 +53,7 @@ func main() {
 		return
 	}
 
-	log.Println("connected to Teonet", api)
+	log.Println("Connected to Teonet", api)
 
 	w.ShowAndRun()
 }

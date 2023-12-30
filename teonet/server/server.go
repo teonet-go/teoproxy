@@ -41,7 +41,7 @@ func New(appShort string) (teo *TeonetServer, err error) {
 func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 
 	// Process message logic here
-	log.Println("Received message (teonet proxy server):", len(message), message, string(message))
+	// log.Println("Received message (teonet proxy server):", len(message), string(message))
 
 	// decode message base64
 	message, err := base64.StdEncoding.DecodeString(string(message))
@@ -57,7 +57,8 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 		log.Println("Can't unmarshal teonet command, error:", err, string(message))
 		return
 	}
-	log.Println("Get Teonet proxy command:", cmd.Cmd.String(), cmd.Data, string(cmd.Data))
+	log.Println("Got Teonet proxy client command:", cmd.Cmd.String(),
+		/* cmd.Data, */ string(cmd.Data))
 
 	// Process command
 	data, err := teo.processCommand(cmd)
@@ -67,14 +68,12 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	}
 
 	// Write response to client
-	cmd.Data = data
-	cmd.Err = err
+	cmd.Data, cmd.Err = data, err
 	data, _ = cmd.MarshalBinary()
-	err = conn.WriteMessage(websocket.TextMessage, data)
-	if err != nil {
+	if err = conn.WriteMessage(websocket.TextMessage,
+		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
 		log.Println("Can't write message to client, error:", err)
 	}
-
 }
 
 func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte, err error) {
@@ -82,6 +81,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte, er
 	case command.Connect:
 		// Process Connect command
 		// TODO: Add your code here
+		data = []byte("Connected to Teonet")
 	case command.Disconnect:
 		// Process Disconnect command
 		// TODO: Add your code here
@@ -93,7 +93,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte, er
 			log.Println(err)
 			return
 		}
-		log.Printf("Connected to peer %s\n", addr)
+		data = []byte(fmt.Sprintf("Connected to peer %s", addr))
 	case command.NewAPIClient:
 		// Process NewAPIClient command
 		// TODO: Add your code here

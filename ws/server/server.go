@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"log"
 	"net/http"
 
@@ -54,8 +55,16 @@ func processMessage(conn *websocket.Conn, message []byte) {
 	log.Println("Received message:", message, string(message))
 
 	// Write response to client
-	err := conn.WriteMessage(websocket.TextMessage, []byte("Message received"))
-	if err != nil {
+	sendMessage(conn, []byte("Message received"))
+}
+
+// SendMessage sends a message to the websocket client
+func sendMessage(conn *websocket.Conn, message []byte) (err error) {
+	if err = conn.WriteMessage(websocket.TextMessage,
+		[]byte(base64.StdEncoding.EncodeToString(message))); err != nil {
 		log.Println("Failed to write message to client:", err)
+		return
 	}
+	log.Println("Message sent to client:", message)
+	return
 }

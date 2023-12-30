@@ -4,17 +4,22 @@ package client
 
 import (
 	"encoding/base64"
-	"fmt"
+	"log"
 	"syscall/js"
 )
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+}
 
 // WsClient is javascript websocket client to use in wasm application.
 type WsClient struct {
 	js.Value
+	processMessage []func(message []byte)
 }
 
-func NewWsClient() *WsClient {
-	return &WsClient{}
+func NewWsClient(processMessage ...func(message []byte)) *WsClient {
+	return &WsClient{processMessage: processMessage}
 }
 
 func (ws *WsClient) Connect() (err error) {
@@ -23,19 +28,19 @@ func (ws *WsClient) Connect() (err error) {
 	// Create a JavaScript WebSocket object
 	js.Global().Set("socket", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) != 1 {
-			fmt.Println("Invalid number of arguments")
+			log.Println("Invalid number of arguments")
 			return nil
 		}
 
 		url := args[0].String()
-		fmt.Println("Url:", url)
+		log.Println("Url:", url)
 
 		// Create a WebSocket connection
 		ws.Value = js.Global().Get("WebSocket").New(url)
 
 		// WebSocket open event handler
 		ws.Value.Set("onopen", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			fmt.Println("WebSocket connection established.")
+			log.Println("WebSocket connection established.")
 			// Send a message through the WebSocket
 			done <- struct{}{}
 			return nil
@@ -43,15 +48,27 @@ func (ws *WsClient) Connect() (err error) {
 
 		// WebSocket message event handler
 		ws.Value.Set("onmessage", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			message := args[0].Get("data").String()
-			fmt.Println("Message from server:", message)
+
 			// Handle incoming messages from the server
+			message := args[0].Get("data").String()
+			// log.Println("Got message from server:", message)
+			data, err := base64.StdEncoding.DecodeString(message)
+			if err != nil {
+				log.Println("Can't decode message base64, error:", err)
+				return nil
+			}
+
+			// Process message
+			for _, f := range ws.processMessage {
+				f(data)
+			}
+
 			return nil
 		}))
 
 		// WebSocket close event handler
 		ws.Value.Set("onclose", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			fmt.Println("WebSocket connection closed.")
+			log.Println("WebSocket connection closed.")
 			// Handle WebSocket connection closure
 			return nil
 		}))
@@ -59,7 +76,7 @@ func (ws *WsClient) Connect() (err error) {
 		// WebSocket error event handler
 		ws.Value.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			// message := args[0].Get("error").String()
-			fmt.Println("WebSocket error:", args[0])
+			log.Println("WebSocket error:", args[0])
 			// Handle WebSocket errors
 			return nil
 		}))
@@ -68,18 +85,18 @@ func (ws *WsClient) Connect() (err error) {
 	}))
 
 	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8083/ws")
+	js.Global().Call("socket", "ws://localhost:8084/ws")
 
 	<-done
 
-	fmt.Println("WebSocket connection done...")
+	log.Println("WebSocket connection done.")
 	return
 }
 
+// SendMessage sends a message to the websocket server
 func (ws *WsClient) SendMessage(message []byte) {
-	// Send a message to the websocket server
 	ws.Value.Call("send", base64.StdEncoding.EncodeToString(message))
-	fmt.Println("Message sent to server:", message)
+	log.Println("Send message to server:", message)
 }
 
 // func (*WsClient) receiveMessages(conn *websocket.Conn) {
