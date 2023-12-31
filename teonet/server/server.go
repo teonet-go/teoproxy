@@ -14,6 +14,7 @@ import (
 type TeonetServer struct {
 	*ws.WsServer
 	*teonet.Teonet
+	*teonet.APIClient
 }
 
 func New(appShort string) (teo *TeonetServer, err error) {
@@ -76,17 +77,21 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	}
 }
 
-func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte, err error) {
+func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
+	err error) {
+
 	switch cmd.Cmd {
+
+	// Process Connect command
 	case command.Connect:
-		// Process Connect command
-		// TODO: Add your code here
 		data = []byte("Connected to Teonet")
+
+	// Process Disconnect command
 	case command.Disconnect:
-		// Process Disconnect command
 		// TODO: Add your code here
+
+	// Process ConnectTo peer command
 	case command.ConnectTo:
-		// Process ConnectTo peer command
 		addr := string(cmd.Data)
 		if err = teo.ConnectTo(addr); err != nil {
 			err = fmt.Errorf("can't connect to peer %s, error: %s", addr, err)
@@ -94,9 +99,32 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte, er
 			return
 		}
 		data = []byte(fmt.Sprintf("Connected to peer %s", addr))
+
+	// Process NewAPIClient command
 	case command.NewAPIClient:
-		// Process NewAPIClient command
-		// TODO: Add your code here
+		addr := string(cmd.Data)
+		if teo.APIClient, err = teo.NewAPIClient(addr); err != nil {
+			err = fmt.Errorf("can't connect to peer %s api, error: %s", addr,
+				err.Error())
+			return
+		}
+		data = []byte(fmt.Sprintf("Connected to peer %s api", addr))
+
+	// Process SendTo command
+	case command.SendTo:
+		type apiAnswer struct {
+			data []byte
+			err  error
+		}
+		w := make(chan apiAnswer, 1)
+		teo.APIClient.SendTo(string(cmd.Data), nil, func(data []byte, err error) {
+			log.Println("Got response from peer:", string(data), err)
+			w <- apiAnswer{data, err}
+		})
+		answer := <-w
+		data, err = answer.data, answer.err
+
+	// Unknown command
 	default:
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
 		log.Println("Unknown command:", err)

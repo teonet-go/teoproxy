@@ -13,6 +13,7 @@ const (
 	Disconnect
 	ConnectTo
 	NewAPIClient
+	SendTo
 	cmdCount
 )
 
@@ -49,6 +50,8 @@ func (c Command) String() string {
 		return "ConnectTo"
 	case NewAPIClient:
 		return "NewAPIClient"
+	case SendTo:
+		return "SendTo"
 	default:
 		return "Unknown"
 	}

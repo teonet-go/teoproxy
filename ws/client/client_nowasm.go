@@ -40,7 +40,7 @@ func (ws *WsClient) receiveMessages() {
 // Connect to websocket server in native application
 func (ws *WsClient) Connect() (err error) {
 	// WebSocket server URL
-	u := url.URL{Scheme: "ws", Host: "localhost:8084", Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: "localhost:8085", Path: "/ws"}
 
 	// Establish a WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)

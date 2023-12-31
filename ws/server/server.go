@@ -31,6 +31,7 @@ func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
+	log.Println("A ws client connected", conn.RemoteAddr())
 	for {
 		// Read message from client
 		_, message, err := conn.ReadMessage()
@@ -48,6 +49,7 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 			f(conn, message)
 		}
 	}
+	log.Println("A ws client disconnected", conn.RemoteAddr())
 }
 
 func processMessage(conn *websocket.Conn, message []byte) {

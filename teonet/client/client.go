@@ -53,8 +53,15 @@ func (teo *Teonet) ConnectTo(peer string) (err error) {
 	return
 }
 
-func (teo *Teonet) NewAPIClient(peer string) (api *ws.WsClient, err error) {
+func (teo *Teonet) NewAPIClient(peer string) (err error) {
 	cmd := &command.TeonetCmd{Cmd: command.NewAPIClient, Data: []byte(peer)}
+	data, _ := cmd.MarshalBinary()
+	teo.ws.SendMessage(data)
+	return
+}
+
+func (teo *Teonet) SendTo(apiCmd string, apiData []byte) (err error) {
+	cmd := &command.TeonetCmd{Cmd: command.SendTo, Data: []byte(apiCmd)}
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
