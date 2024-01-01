@@ -11,14 +11,14 @@ func TestUnmarshalBinary(t *testing.T) {
 	cmd := &TeonetCmd{}
 
 	// Test case 1: valid binary data
-	data := []byte{1, 2, 3}
+	data := []byte{0, 0, 0, 0, 1, 2, 3}
 	err := cmd.UnmarshalBinary(data)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
 
 	// Test case 2: valid binary data
-	data = []byte{1, 1}
+	data = []byte{0, 0, 0, 0, 1, 1}
 	err = cmd.UnmarshalBinary(data)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
@@ -32,14 +32,14 @@ func TestUnmarshalBinary(t *testing.T) {
 	}
 
 	// Test case 4: invalid checksum
-	data = []byte{1, 2, 4}
+	data = []byte{0, 0, 0, 0, 1, 2, 4}
 	err = cmd.UnmarshalBinary(data)
 	if err != ErrWrongChecksum {
 		t.Errorf("Expected ErrWrongChecksum, got: %v", err)
 	}
 
 	// Test case 4: unknown command
-	data = []byte{10, 2, 12}
+	data = []byte{0, 0, 0, 0, 10, 2, 12}
 	err = cmd.UnmarshalBinary(data)
 	if err != ErrUnknownCommand {
 		t.Errorf("Expected ErrUnknownCommand, got: %v", err)

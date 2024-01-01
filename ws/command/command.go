@@ -2,19 +2,20 @@
 package command
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 )
 
 // Teonet proxy commands
 const (
-	cmdNone Command = iota
-	Connect
-	Disconnect
-	ConnectTo
-	NewAPIClient
-	SendTo
-	cmdCount
+	cmdNone      Command = iota
+	Connect              // Connect to Teonet
+	Disconnect           // Disconnect from Teonet
+	ConnectTo            // Connect to peer
+	NewAPIClient         // New APIClient
+	SendTo               // Send api command to peer
+	cmdCount             // Number of commands
 )
 
 var (
@@ -26,9 +27,10 @@ var (
 // TeonetCmd represents a command packet in the Teonet proxy protocol. It
 // contains a command byte and a data slice.
 type TeonetCmd struct {
-	Cmd  Command
-	Data []byte
-	Err  error
+	Id   uint32  // Packet ID
+	Cmd  Command // Command
+	Data []byte  // Data
+	Err  error   // Error
 }
 
 type Command byte
@@ -57,12 +59,36 @@ func (c Command) String() string {
 	}
 }
 
+// New creates and returns a new TeonetCmd instance.
+//
+// It takes a `cmd` parameter of type `Command`, which represents the command
+// for the TeonetCmd instance. The `data` parameter is a byte slice that
+// contains the data for the TeonetCmd instance.
+//
+// The function returns a pointer to the newly created TeonetCmd instance.
+func New(cmd Command, data []byte) *TeonetCmd {
+	return &TeonetCmd{Cmd: cmd, Data: data}
+}
+
+// NewEmpty returns a new instance of TeonetCmd with no initial values.
+//
+// Returns a pointer to TeonetCmd.
+func NewEmpty() *TeonetCmd {
+	return &TeonetCmd{}
+}
+
 // MarshalBinary converts the TeonetCmd struct into a binary representation.
 //
 // It returns a byte slice containing the binary representation of the struct
 // and an error if there was an issue during the conversion.
 func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 
+	// Add packet id
+	idBinarySlice := make([]byte, 4)
+	binary.LittleEndian.PutUint32(idBinarySlice, c.Id)
+	data = append(data, idBinarySlice...)
+
+	// Add command and data
 	if c.Err != nil {
 		data = append(data, byte(c.Cmd|0x80))
 		data = append(data, []byte(c.Err.Error())...)
@@ -71,6 +97,7 @@ func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 		data = append(data, c.Data...)
 	}
 
+	// Add checksum
 	data = append(data, c.checksum(data))
 
 	return
@@ -96,8 +123,15 @@ func (c TeonetCmd) MarshalBinary() (data []byte, err error) {
 // - `err error`: An error encountered during the unmarshaling process.
 func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 
+	const (
+		idLen   = 4               // Length of packet id
+		cmdLen  = 1               // Length of command byte
+		cmdIdx  = idLen           // Index of command byte
+		dataIdx = cmdIdx + cmdLen // Index of data
+	)
+
 	// Check packet length
-	if len(data) < 2 {
+	if len(data) < idLen+cmdLen+1 {
 		err = ErrNotEnoughData
 		return
 	}
@@ -108,7 +142,8 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 
-	cmd := data[0] & 0x7F
+	cmd := data[cmdIdx] & 0x7F      // Command
+	isErr := data[cmdIdx]&0x80 != 0 // The data contains error message
 
 	// Check command number
 	if !(cmd > byte(cmdNone) && cmd < byte(cmdCount)) {
@@ -116,12 +151,12 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 
-	// Get command and data
+	// Get command and data or error message
 	c.Cmd = Command(cmd)
-	if data[0]&0x80 == 0 {
-		c.Data = data[1 : len(data)-1]
+	if !isErr {
+		c.Data = data[dataIdx : len(data)-1]
 	} else {
-		c.Err = errors.New(string(data[1 : len(data)-1]))
+		c.Err = errors.New(string(data[dataIdx : len(data)-1]))
 	}
 
 	return

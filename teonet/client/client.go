@@ -17,7 +17,7 @@ type Teonet struct {
 func New(appShort string) (teo *Teonet, err error) {
 	teo = new(Teonet)
 	teo.ws = ws.NewWsClient(func(message []byte) {
-		cmd := &command.TeonetCmd{}
+		cmd := command.NewEmpty()
 		err = cmd.UnmarshalBinary(message)
 		if err != nil {
 			log.Println("Can't unmarshal teonet proxy server command, error:",
@@ -33,35 +33,35 @@ func New(appShort string) (teo *Teonet, err error) {
 
 // Connect to Teonet
 func (teo *Teonet) Connect() (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.Connect}
+	cmd := command.New(command.Connect, nil)
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) Disconnect() (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.Disconnect}
+	cmd := command.New(command.Disconnect, nil)
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) ConnectTo(peer string) (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.ConnectTo, Data: []byte(peer)}
+	cmd := command.New(command.ConnectTo, []byte(peer))
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) NewAPIClient(peer string) (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.NewAPIClient, Data: []byte(peer)}
+	cmd := command.New(command.NewAPIClient, []byte(peer))
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return
 }
 
 func (teo *Teonet) SendTo(apiCmd string, apiData []byte) (err error) {
-	cmd := &command.TeonetCmd{Cmd: command.SendTo, Data: []byte(apiCmd)}
+	cmd := command.New(command.SendTo, []byte(apiCmd))
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
 	return

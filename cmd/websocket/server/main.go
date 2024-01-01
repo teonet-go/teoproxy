@@ -10,7 +10,7 @@ import (
 func main() {
 	// Start websocket server
 	http.HandleFunc("/ws", handleWebSocket)
-	log.Fatal(http.ListenAndServe(":8085", nil))
+	log.Fatal(http.ListenAndServe(":8081", nil))
 
 	// Start https websocket server
 	// log.Fatal(http.ListenAndServeTLS(":8443", "cert.pem", "key.pem", nil))

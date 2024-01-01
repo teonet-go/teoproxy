@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// WebSocket server URL
-	u := url.URL{Scheme: "ws", Host: "localhost:8085", Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: "localhost:8081", Path: "/ws"}
 
 	// Establish a WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
