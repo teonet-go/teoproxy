@@ -153,15 +153,16 @@ func (teo *teofortune) newGui() {
 func (teo *teofortune) fortune() (msg string, err error) {
 
 	// Get fortune message from teofortune microservice
-	err = teo.SendTo("fortb", nil)
+	id, err := teo.SendTo("fortb", nil)
 	if err != nil {
 		return
 	}
-	// data, err := teo.WaitFrom(teo.addr, uint32(id))
-	// if err != nil {
-	// 	return
-	// }
+	log.Println("Send id:", id)
+	data, err := teo.WaitFrom(teo.addr, uint32(id))
+	if err != nil {
+		return
+	}
 
-	// msg = string(data)
+	msg = string(data)
 	return
 }

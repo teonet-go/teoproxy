@@ -4,13 +4,15 @@ package client
 
 import (
 	"log"
+	"sync/atomic"
 
 	ws "github.com/teonet-go/teoproxy/ws/client"
 	"github.com/teonet-go/teoproxy/ws/command"
 )
 
 type Teonet struct {
-	ws *ws.WsClient
+	ws *ws.WsClient // Websocket client
+	id uint32       // Packet id
 }
 
 // Start Teonet client
@@ -29,6 +31,11 @@ func New(appShort string) (teo *Teonet, err error) {
 	})
 	err = teo.ws.Connect()
 	return
+}
+
+// getNextID gets next packet id
+func (teo *Teonet) getNextID() uint32 {
+	return atomic.AddUint32(&teo.id, 1)
 }
 
 // Connect to Teonet
@@ -60,9 +67,16 @@ func (teo *Teonet) NewAPIClient(peer string) (err error) {
 	return
 }
 
-func (teo *Teonet) SendTo(apiCmd string, apiData []byte) (err error) {
+func (teo *Teonet) SendTo(apiCmd string, apiData []byte) (id uint32, err error) {
 	cmd := command.New(command.SendTo, []byte(apiCmd))
+	cmd.Id = teo.getNextID()
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
+	id = cmd.Id
+	return
+}
+
+func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
+	// TODO: implement this function code
 	return
 }
