@@ -13,8 +13,8 @@ const (
 	Connect              // Connect to Teonet
 	Disconnect           // Disconnect from Teonet
 	ConnectTo            // Connect to peer
-	NewAPIClient         // New APIClient
-	SendTo               // Send api command to peer
+	NewApiClient         // New API Client
+	ApiSendTo            // Send API Command to peer
 	cmdCount             // Number of commands
 )
 
@@ -50,10 +50,10 @@ func (c Command) String() string {
 		return "Dsconnect"
 	case ConnectTo:
 		return "ConnectTo"
-	case NewAPIClient:
-		return "NewAPIClient"
-	case SendTo:
-		return "SendTo"
+	case NewApiClient:
+		return "NewApiClient"
+	case ApiSendTo:
+		return "ApiSendTo"
 	default:
 		return "Unknown"
 	}

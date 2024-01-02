@@ -66,19 +66,11 @@ func (teo *Teonet) ConnectTo(peer string) (err error) {
 	return
 }
 
-func (teo *Teonet) NewAPIClient(peer string) (err error) {
-	cmd := command.New(command.NewAPIClient, []byte(peer))
+func (teo *Teonet) NewAPIClient(peer string) (cli *APIClient, err error) {
+	cmd := command.New(command.NewApiClient, []byte(peer))
 	data, _ := cmd.MarshalBinary()
 	teo.ws.SendMessage(data)
-	return
-}
-
-func (teo *Teonet) SendTo(apiCmd string, apiData []byte) (id uint32, err error) {
-	cmd := command.New(command.SendTo, []byte(apiCmd))
-	cmd.Id = teo.getNextID()
-	data, _ := cmd.MarshalBinary()
-	teo.ws.SendMessage(data)
-	id = cmd.Id
+	cli = &APIClient{teo: teo, addr: peer}
 	return
 }
 
@@ -111,14 +103,34 @@ func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
 		return true
 	})
 
-	// select channel and timeout
-	var result resultData
+	// Get answer from server or timeout
+	var answer resultData
 	select {
-	case result = <-w:
+	case answer = <-w:
 	case <-time.After(5 * time.Second):
-		result = resultData{nil, fmt.Errorf("timeout")}
+		answer = resultData{nil, fmt.Errorf("timeout")}
 	}
+	data, err = answer.data, answer.err
 
-	data, err = result.data, result.err
+	return
+}
+
+type APIClient struct {
+	teo  *Teonet
+	addr string
+}
+
+func (api *APIClient) Address() string {
+	return api.addr
+}
+
+func (api *APIClient) SendTo(apiCmd string, apiData []byte) (id uint32, err error) {
+	data := []byte(api.Address() + "," + apiCmd + ",")
+	data = append(data, apiData...)
+	cmd := command.New(command.ApiSendTo, data)
+	cmd.Id = api.teo.getNextID()
+	data, _ = cmd.MarshalBinary()
+	api.teo.ws.SendMessage(data)
+	id = cmd.Id
 	return
 }

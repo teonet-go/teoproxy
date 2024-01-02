@@ -13,53 +13,6 @@ import (
 
 //go:generate fyne package -os wasm
 
-func main_old() {
-
-	const appShort = "client-gui"
-
-	app := app.New()
-	w := app.NewWindow("Hello")
-	w.SetContent(widget.NewLabel("Hello Fyne!"))
-	w.Resize(fyne.NewSize(200, 200))
-
-	// Test connect to WebSocket server
-	// ws := ws.NewWsClient()
-	// err := ws.Connect()
-	// if err == nil {
-	// 	ws.SendMessage([]byte{1, 2, 3, 4, 5})
-	// }
-
-	// teoFortune peer
-	const peer = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF"
-
-	// Start Teonet proxy client
-	teo, err := client.New(appShort)
-	if err != nil {
-		log.Fatal("can't initialize Teonet, error:", err)
-	}
-	// Connect to Teonet using proxy server
-	err = teo.Connect()
-	if err != nil {
-		log.Fatal("can't connect to Teonet, error:", err)
-	}
-	// Connect to teoFortune server(peer)
-	if err = teo.ConnectTo(peer); err != nil {
-		log.Fatal("can't connect to peer, error:", err)
-	}
-	// Connet to fortune api
-	err = teo.NewAPIClient(peer)
-	if err != nil {
-		log.Fatal("can't connect to peer api, error:", err)
-		return
-	}
-	// Got fortune api data
-	teo.SendTo("fortb", nil)
-
-	log.Println("Connected to Teonet")
-
-	w.ShowAndRun()
-}
-
 const (
 	appName    = "Teonet fortune golang GUI application"
 	appShort   = "teofortunegui"
@@ -86,9 +39,9 @@ func main() {
 // teofortune contains teonet data and holds methods to start gui, process
 // teonet connection and teofortune api
 type teofortune struct {
-	addr           string // Teofortune address
-	*client.Teonet        // Teonet object
-	// client         *teonet.APIClient // Teofortune api client
+	*client.Teonet                   // Teonet object
+	addr           string            // Teofortune address
+	client         *client.APIClient // Teofortune api client
 }
 
 // newTeofortune connects to Teonet and Teofortune server(peer)
@@ -120,7 +73,7 @@ func newTeofortune(appShort, teoFortune string) (teo *teofortune, err error) {
 	}
 
 	// Connet to fortune api
-	if err = teo.NewAPIClient(teo.addr); err != nil {
+	if teo.client, err = teo.NewAPIClient(teo.addr); err != nil {
 		err = fmt.Errorf("can't connect to 'fortune' api, error: %s", err.Error())
 		return
 	}
@@ -153,12 +106,12 @@ func (teo *teofortune) newGui() {
 func (teo *teofortune) fortune() (msg string, err error) {
 
 	// Get fortune message from teofortune microservice
-	id, err := teo.SendTo("fortb", nil)
+	id, err := teo.client.SendTo("fortb", nil)
 	if err != nil {
 		return
 	}
 	log.Println("Send id:", id)
-	data, err := teo.WaitFrom(teo.addr, uint32(id))
+	data, err := teo.WaitFrom(teo.client.Address(), uint32(id))
 	if err != nil {
 		return
 	}
@@ -166,3 +119,51 @@ func (teo *teofortune) fortune() (msg string, err error) {
 	msg = string(data)
 	return
 }
+
+// -------------------------------------------------------------------------
+// func main_old() {
+
+// 	const appShort = "client-gui"
+
+// 	app := app.New()
+// 	w := app.NewWindow("Hello")
+// 	w.SetContent(widget.NewLabel("Hello Fyne!"))
+// 	w.Resize(fyne.NewSize(200, 200))
+
+// 	// Test connect to WebSocket server
+// 	// ws := ws.NewWsClient()
+// 	// err := ws.Connect()
+// 	// if err == nil {
+// 	// 	ws.SendMessage([]byte{1, 2, 3, 4, 5})
+// 	// }
+
+// 	// teoFortune peer
+// 	const peer = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF"
+
+// 	// Start Teonet proxy client
+// 	teo, err := client.New(appShort)
+// 	if err != nil {
+// 		log.Fatal("can't initialize Teonet, error:", err)
+// 	}
+// 	// Connect to Teonet using proxy server
+// 	err = teo.Connect()
+// 	if err != nil {
+// 		log.Fatal("can't connect to Teonet, error:", err)
+// 	}
+// 	// Connect to teoFortune server(peer)
+// 	if err = teo.ConnectTo(peer); err != nil {
+// 		log.Fatal("can't connect to peer, error:", err)
+// 	}
+// 	// Connet to fortune api
+// 	_, err = teo.NewAPIClient(peer)
+// 	if err != nil {
+// 		log.Fatal("can't connect to peer api, error:", err)
+// 		return
+// 	}
+// 	// Got fortune api data
+// 	teo.client.SendTo("fortb", nil)
+
+// 	log.Println("Connected to Teonet")
+
+// 	w.ShowAndRun()
+// }

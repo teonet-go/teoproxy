@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/teonet-go/teonet"
@@ -14,11 +17,14 @@ import (
 type TeonetServer struct {
 	*ws.WsServer
 	*teonet.Teonet
-	*teonet.APIClient
+	apiClients *APIClients
 }
 
 func New(appShort string) (teo *TeonetServer, err error) {
 	teo = &TeonetServer{}
+
+	// Init api clients object
+	teo.initAPIClients()
 
 	// Create websocket server
 	teo.WsServer = ws.New(teo.processMessage)
@@ -101,27 +107,63 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		data = []byte(fmt.Sprintf("Connected to peer %s", addr))
 
 	// Process NewAPIClient command
-	case command.NewAPIClient:
+	case command.NewApiClient:
 		addr := string(cmd.Data)
-		if teo.APIClient, err = teo.NewAPIClient(addr); err != nil {
-			err = fmt.Errorf("can't connect to peer %s api, error: %s", addr,
-				err.Error())
-			return
+		if !teo.apiClients.Exists(addr) {
+			var cli *teonet.APIClient
+			if cli, err = teo.NewAPIClient(addr); err != nil {
+				err = fmt.Errorf("can't connect to peer %s api, error: %s",
+					addr, err.Error())
+				return
+			}
+			teo.apiClients.Add(addr, cli)
 		}
 		data = []byte(fmt.Sprintf("Connected to peer %s api", addr))
 
 	// Process SendTo command
-	case command.SendTo:
+	case command.ApiSendTo:
+
+		// Split commands data to peer name and api command
+		splitData := strings.Split(string(cmd.Data), ",")
+		if len(splitData) < 3 {
+			err = fmt.Errorf("wrong command data: %s", cmd.Cmd.String())
+			return
+		}
+
+		apiPeerName := splitData[0]
+		apiCommand := splitData[1]
+		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
+
+		log.Println("Send api command:", string(apiCommand), " to peer:", apiPeerName, " data len:", len(apiCommandData))
+
+		// Api answer struct
 		type apiAnswer struct {
 			data []byte
 			err  error
 		}
 		w := make(chan apiAnswer, 1)
-		teo.APIClient.SendTo(string(cmd.Data), nil, func(data []byte, err error) {
+		// Get api client by name
+		api, ok := teo.apiClients.Get(apiPeerName)
+		if !ok {
+			err = fmt.Errorf(
+				"can't get api client, error: has not connected to peer api %s",
+				apiPeerName,
+			)
+			return
+		}
+		// Send request to api peer
+		api.SendTo(apiCommand, apiCommandData, func(data []byte, err error) {
 			log.Println("Got response from peer, len:", len(data), " err:", err)
 			w <- apiAnswer{data, err}
 		})
-		answer := <-w
+
+		// Get answer from api peer or timeout
+		var answer apiAnswer
+		select {
+		case answer = <-w:
+		case <-time.After(5 * time.Second):
+			answer = apiAnswer{nil, fmt.Errorf("timeout")}
+		}
 		data, err = answer.data, answer.err
 
 	// Unknown command
@@ -129,5 +171,47 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
 		log.Println("Unknown command:", err)
 	}
+
 	return
+}
+
+type APIClients struct {
+	m map[string]*teonet.APIClient
+	*sync.RWMutex
+}
+
+func (teo *TeonetServer) initAPIClients() {
+	teo.apiClients = &APIClients{
+		m:       make(map[string]*teonet.APIClient),
+		RWMutex: &sync.RWMutex{},
+	}
+}
+
+func (cli *APIClients) Add(name string, api *teonet.APIClient) {
+	cli.Lock()
+	defer cli.Unlock()
+
+	if _, ok := cli.m[name]; ok {
+		return
+	}
+
+	cli.m[name] = api
+}
+
+func (cli *APIClients) Remove(name string) {
+	cli.Lock()
+	defer cli.Unlock()
+	delete(cli.m, name)
+}
+
+func (cli *APIClients) Get(name string) (api *teonet.APIClient, ok bool) {
+	cli.RLock()
+	defer cli.RUnlock()
+	api, ok = cli.m[name]
+	return
+}
+
+func (cli *APIClients) Exists(name string) bool {
+	_, ok := cli.Get(name)
+	return ok
 }
