@@ -14,7 +14,7 @@ type WsClient struct {
 	*websocket.Conn
 }
 
-func NewWsClient(processMessage ...func(message []byte)) *WsClient {
+func NewWsClient(processMessage ...func(message []byte) bool) *WsClient {
 	return &WsClient{}
 }
 
