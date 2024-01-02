@@ -89,7 +89,7 @@ func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
 		err  error
 	}
 	w := make(chan resultData, 1)
-	teo.ws.AddReader(func(message []byte) bool {
+	readerId = teo.ws.AddReader(func(message []byte) bool {
 
 		cmd := command.NewEmpty()
 		err = cmd.UnmarshalBinary(message)
