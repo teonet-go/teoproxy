@@ -151,6 +151,9 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 		return
 	}
 
+	// Get packet id
+	c.Id = binary.LittleEndian.Uint32(data[:idLen])
+
 	// Get command and data or error message
 	c.Cmd = Command(cmd)
 	if !isErr {

@@ -44,6 +44,16 @@ func TestUnmarshalBinary(t *testing.T) {
 	if err != ErrUnknownCommand {
 		t.Errorf("Expected ErrUnknownCommand, got: %v", err)
 	}
+
+	// Test case 5: check message id
+	data = []byte{1, 0, 0, 0, 1, 2, 4}
+	err = cmd.UnmarshalBinary(data)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+	if cmd.Id != 1 {
+		t.Errorf("Expected id: 1, got: %v", cmd.Id)
+	}
 }
 
 func TestMarshalBinary(t *testing.T) {
