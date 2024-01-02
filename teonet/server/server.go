@@ -58,8 +58,8 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 		log.Println("Can't unmarshal teonet command, error:", err, string(message))
 		return
 	}
-	log.Println("Got Teonet proxy client command:", cmd.Cmd.String(),
-		/* cmd.Data, */ string(cmd.Data))
+	log.Println("Got Teonet proxy client command:", cmd.Id, cmd.Cmd.String(),
+		string(cmd.Data))
 
 	// Process command
 	data, err := teo.processCommand(cmd)
@@ -118,7 +118,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		}
 		w := make(chan apiAnswer, 1)
 		teo.APIClient.SendTo(string(cmd.Data), nil, func(data []byte, err error) {
-			log.Println("Got response from peer:", string(data), err)
+			log.Println("Got response from peer, len:", len(data), " err:", err)
 			w <- apiAnswer{data, err}
 		})
 		answer := <-w
