@@ -3,8 +3,10 @@
 package client
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"log"
+	"sync"
 	"syscall/js"
 )
 
@@ -15,11 +17,13 @@ func init() {
 // WsClient is javascript websocket client to use in wasm application.
 type WsClient struct {
 	js.Value
-	processMessage []func(message []byte)
+	*Readers
 }
 
-func NewWsClient(processMessage ...func(message []byte)) *WsClient {
-	return &WsClient{processMessage: processMessage}
+func NewWsClient(processMessage ...ReaderFunc) *WsClient {
+	ws := &WsClient{}
+	ws.newReaders(processMessage...)
+	return ws
 }
 
 func (ws *WsClient) Connect() (err error) {
@@ -59,9 +63,7 @@ func (ws *WsClient) Connect() (err error) {
 			}
 
 			// Process message
-			for _, f := range ws.processMessage {
-				f(data)
-			}
+			ws.processReaders(data)
 
 			return nil
 		}))
@@ -112,3 +114,65 @@ func (ws *WsClient) SendMessage(message []byte) {
 // 		log.Println("Received message from server:", string(message))
 // 	}
 // }
+
+type Readers struct {
+	m map[string]ReaderFunc
+	*sync.RWMutex
+}
+type ReaderFunc func(message []byte) bool
+
+func (ws *WsClient) newReaders(processMessage ...ReaderFunc) {
+	ws.Readers = &Readers{m: make(map[string]ReaderFunc), RWMutex: new(sync.RWMutex)}
+	for _, p := range processMessage {
+		ws.Readers.AddReader(p)
+	}
+	return
+}
+
+func (r *Readers) AddReader(processMessage ReaderFunc) (id string) {
+
+	// newId generates random string with n bytes
+	newId := func(n int) string {
+		b := make([]byte, n)
+		rand.Read(b)
+		return base64.URLEncoding.EncodeToString(b)
+	}
+
+	r.Lock()
+
+	// Create and check new id
+	for {
+		id = newId(16)
+		if _, ok := r.m[id]; !ok {
+			break
+		}
+	}
+
+	r.m[id] = processMessage
+	r.Unlock()
+
+	return
+}
+
+func (r *Readers) RemoveReader(id string) {
+	r.Lock()
+	delete(r.m, id)
+	r.Unlock()
+}
+
+func (r *Readers) getReaders(id string) (reader ReaderFunc, ok bool) {
+	r.RLock()
+	reader, ok = r.m[id]
+	r.RUnlock()
+	return
+}
+
+func (r *Readers) processReaders(message []byte) {
+	r.RLock()
+	defer r.RUnlock()
+	for _, reader := range r.m {
+		if reader(message) {
+			break
+		}
+	}
+}
