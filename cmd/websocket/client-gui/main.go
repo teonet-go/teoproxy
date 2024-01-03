@@ -50,33 +50,41 @@ func newTeofortune(appShort, teoFortune string) (teo *teofortune, err error) {
 	teo = new(teofortune)
 	teo.addr = teoFortune
 
+	// On Teonet client connected or reconnected
+	onConnected := func() {
+
+		log.Println("Teonet client connected.")
+
+		// Connect to Teonet
+		err = teo.Connect()
+		if err != nil {
+			// time.Sleep(1 * time.Second)
+			// goto connect
+			err = fmt.Errorf("can't connect to Teonet, error: " + err.Error())
+			return
+		}
+
+		// Connect to teoFortune server(peer)
+		if err = teo.ConnectTo(teo.addr); err != nil {
+			err = fmt.Errorf("can't connect to 'fortune', error: %s" + err.Error())
+			return
+		}
+
+		// Connet to fortune api
+		if teo.client, err = teo.NewAPIClient(teo.addr); err != nil {
+			err = fmt.Errorf("can't connect to 'fortune' api, error: %s", err.Error())
+			return
+		}
+
+	}
+
 	// Start Teonet client
-	teo.Teonet, err = client.New(appShort)
+	teo.Teonet, err = client.New(appShort, onConnected)
 	if err != nil {
 		err = fmt.Errorf("can't init Teonet, error: " + err.Error())
 		return
 	}
-
-	// Connect to Teonet
-	err = teo.Connect()
-	if err != nil {
-		// time.Sleep(1 * time.Second)
-		// goto connect
-		err = fmt.Errorf("can't connect to Teonet, error: " + err.Error())
-		return
-	}
-
-	// Connect to teoFortune server(peer)
-	if err = teo.ConnectTo(teo.addr); err != nil {
-		err = fmt.Errorf("can't connect to 'fortune', error: %s" + err.Error())
-		return
-	}
-
-	// Connet to fortune api
-	if teo.client, err = teo.NewAPIClient(teo.addr); err != nil {
-		err = fmt.Errorf("can't connect to 'fortune' api, error: %s", err.Error())
-		return
-	}
+	onConnected()
 
 	return
 }

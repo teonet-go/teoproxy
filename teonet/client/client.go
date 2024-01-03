@@ -18,7 +18,7 @@ type Teonet struct {
 }
 
 // Start Teonet client
-func New(appShort string) (teo *Teonet, err error) {
+func New(appShort string, onReconnected func()) (teo *Teonet, err error) {
 	teo = new(Teonet)
 	teo.ws = ws.NewWsClient(
 	// func(message []byte) bool {
@@ -35,7 +35,7 @@ func New(appShort string) (teo *Teonet, err error) {
 	// 	return false
 	// },
 	)
-	err = teo.ws.Connect()
+	err = teo.ws.Connect(onReconnected)
 	return
 }
 

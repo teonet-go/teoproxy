@@ -4,8 +4,10 @@ package client
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"syscall/js"
+	"time"
 )
 
 func init() {
@@ -24,8 +26,14 @@ func NewWsClient(processMessage ...ReaderFunc) *WsClient {
 	return ws
 }
 
-func (ws *WsClient) Connect() (err error) {
+func (ws *WsClient) Connect(onReconnected func()) (err error) {
+	var connected bool
 	done := make(chan struct{}, 0)
+
+	// Call the JavaScript function to create the WebSocket connection
+	connect := func() {
+		js.Global().Call("socket", "ws://localhost:8081/ws")
+	}
 
 	// Create a JavaScript WebSocket object
 	js.Global().Set("socket", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -35,7 +43,7 @@ func (ws *WsClient) Connect() (err error) {
 		}
 
 		url := args[0].String()
-		log.Println("Url:", url)
+		log.Println("Connect to websocket:", url)
 
 		// Create a WebSocket connection
 		ws.Value = js.Global().Get("WebSocket").New(url)
@@ -43,8 +51,12 @@ func (ws *WsClient) Connect() (err error) {
 		// WebSocket open event handler
 		ws.Value.Set("onopen", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			log.Println("WebSocket connection established.")
-			// Send a message through the WebSocket
-			done <- struct{}{}
+			if !connected {
+				connected = true
+				done <- struct{}{}
+			} else {
+				onReconnected()
+			}
 			return nil
 		}))
 
@@ -53,7 +65,6 @@ func (ws *WsClient) Connect() (err error) {
 
 			// Handle incoming messages from the server
 			message := args[0].Get("data").String()
-			// log.Println("Got message from server:", message)
 			data, err := base64.StdEncoding.DecodeString(message)
 			if err != nil {
 				log.Println("Can't decode message base64, error:", err)
@@ -69,15 +80,17 @@ func (ws *WsClient) Connect() (err error) {
 		// WebSocket close event handler
 		ws.Value.Set("onclose", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			log.Println("WebSocket connection closed.")
-			// Handle WebSocket connection closure
+			time.Sleep(1 * time.Second)
+
+			// Reconnect
+			connect()
 			return nil
 		}))
 
 		// WebSocket error event handler
 		ws.Value.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			// message := args[0].Get("error").String()
-			log.Println("WebSocket error:", args[0])
-			// Handle WebSocket errors
+			message := args[0].Get("error").String()
+			log.Println("WebSocket error:", message)
 			return nil
 		}))
 
@@ -85,11 +98,16 @@ func (ws *WsClient) Connect() (err error) {
 	}))
 
 	// Call the JavaScript function to create the WebSocket connection
-	js.Global().Call("socket", "ws://localhost:8081/ws")
+	connect()
 
-	<-done
+	// Wait for the WebSocket connection to be established or timeout
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		err = fmt.Errorf("timeout")
+		return
+	}
 
-	log.Println("WebSocket connection done.")
 	return
 }
 

@@ -47,9 +47,6 @@ func New(appShort string) (teo *TeonetServer, err error) {
 
 func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 
-	// Process message logic here
-	// log.Println("Received message (teonet proxy server):", len(message), string(message))
-
 	// decode message base64
 	message, err := base64.StdEncoding.DecodeString(string(message))
 	if err != nil {
@@ -134,7 +131,8 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		apiCommand := splitData[1]
 		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
 
-		log.Println("Send api command:", string(apiCommand), " to peer:", apiPeerName, " data len:", len(apiCommandData))
+		log.Println("Send api command:", string(apiCommand), " to peer:",
+			apiPeerName, " data len:", len(apiCommandData))
 
 		// Api answer struct
 		type apiAnswer struct {
