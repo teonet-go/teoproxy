@@ -46,7 +46,7 @@ func (ws *WsClient) Connect(onReconnected func()) (err error) {
 		log.Fatal(err)
 	}
 	url := fmt.Sprintf("%s://%s/ws", wsScheme(u.Scheme), u.Host)
-	log.Println("Connect to websocket:", url)
+	log.Println("Websocket URL defined:", url)
 
 	// Call the JavaScript function to create the WebSocket connection
 	connect := func() {
