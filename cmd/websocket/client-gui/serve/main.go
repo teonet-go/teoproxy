@@ -2,6 +2,9 @@
 //
 // How to build this web application server:
 //
+//	# Install fyne executible (if not installed)
+//	go install fyne.io/fyne/v2/cmd/fyne@latest
+//
 //	# Go to serve folder inside client-gui folder
 //	cd cmd/websocket/client-gui/serve
 //
