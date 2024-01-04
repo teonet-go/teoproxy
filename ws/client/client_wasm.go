@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"net/url"
 	"syscall/js"
 	"time"
 )
@@ -30,9 +31,26 @@ func (ws *WsClient) Connect(onReconnected func()) (err error) {
 	var connected bool
 	done := make(chan struct{}, 0)
 
+	// wsScheme returns "ws" or "wss" depending on the given URL scheme
+	wsScheme := func(httpScheme string) string {
+		if httpScheme == "https" {
+			return "wss"
+		}
+		return "ws"
+	}
+
+	// Get the current URL and parse it to create the WebSocket URL
+	href := js.Global().Get("location").Get("href")
+	u, err := url.Parse(href.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+	url := fmt.Sprintf("%s://%s/ws", wsScheme(u.Scheme), u.Host)
+	log.Println("Connect to websocket:", url)
+
 	// Call the JavaScript function to create the WebSocket connection
 	connect := func() {
-		js.Global().Call("socket", "ws://localhost:8081/ws")
+		js.Global().Call("socket", url)
 	}
 
 	// Create a JavaScript WebSocket object
