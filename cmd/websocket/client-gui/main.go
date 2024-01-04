@@ -11,8 +11,6 @@ import (
 	"github.com/teonet-go/teoproxy/teonet/client"
 )
 
-//go:generate fyne package -os wasm
-
 const (
 	appName    = "Teonet fortune golang GUI application"
 	appShort   = "teofortunegui"

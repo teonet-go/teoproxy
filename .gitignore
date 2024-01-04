@@ -1,1 +1,3 @@
-cmd/websocket/client-gui/wasm
+cmd/websocket/client-gui/serve/wasm
+cmd/websocket/client-gui/serve/serve.exe
+cmd/websocket/client-gui/serve/serve

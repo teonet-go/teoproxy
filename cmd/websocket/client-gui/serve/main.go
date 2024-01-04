@@ -1,3 +1,34 @@
+// The teoproxy client-gui example web serve package.
+//
+// How to build this web application server:
+//
+//	# Go to serve folder inside client-gui folder
+//	cd cmd/websocket/client-gui/serve
+//
+//	# Build web package
+//	fyne package -os wasm --sourceDir ../
+//
+// (or you can use go generate command to build and run this web server)
+//
+// How to run this web application server:
+//
+// After build the web server you can start it with next command:
+//
+//	# Run web server (in development mode)
+//	go run .
+//
+//	# Run web server (in production mode)
+//	go run -tags=prod .
+//
+// How to build executible of this web application server:
+//
+//	# Build executible
+//	go build -tags=prod .
+//
+//	# Build executible for Linux
+//	GOOS=linux go build -tags=prod .
+//
+//go:generate fyne package -os wasm --sourceDir ../
 package main
 
 import (
@@ -11,19 +42,6 @@ const (
 	appShort = "client-gui-serve"
 )
 
-// go:embed wasm/*
-// var fs embed.FS
-
-// How to run web application server:
-//
-//	# Go to main client-gui folder
-//	cd client-gui
-//
-//	# Build web package
-//	fyne package -os wasm
-//
-//	# Run web server
-//	go run ./serve
 func main() {
 	// Define a handler function for the HTTP requests
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -34,14 +52,14 @@ func main() {
 	http.HandleFunc("/hello", handler)
 
 	// Create a file server to serve static files from the "wasm" directory
-	fs := http.FileServer(http.Dir("wasm"))
-
-	// Register the file server handler to handle requests starting with "/static/"
-	http.Handle("/", http.StripPrefix("/", fs))
+	// fs := http.FileServer(http.Dir("wasm"))
+	// http.Handle("/", http.StripPrefix("/", fs))
 
 	// TODO: when embedded filesystem on
 	// Register the file server handler to handle all requests
-	//http.Handle("/", http.FileServer(http.FS(fs)))
+	// http.Handle("/", http.FileServer(http.FS(fs)))
+	frontendFS := http.FileServer(http.FS(getFrontendAssets()))
+	http.Handle("/", frontendFS)
 
 	// Register websocket server
 	serve, err := server.New(appShort)
