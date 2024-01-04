@@ -14,20 +14,22 @@ import (
 	ws "github.com/teonet-go/teoproxy/ws/server"
 )
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+}
+
 type TeonetServer struct {
+	*sync.Mutex
 	*ws.WsServer
 	*teonet.Teonet
 	apiClients *APIClients
 }
 
 func New(appShort string) (teo *TeonetServer, err error) {
-	teo = &TeonetServer{}
+	teo = &TeonetServer{Mutex: new(sync.Mutex)}
 
 	// Init api clients object
 	teo.initAPIClients()
-
-	// Create websocket server
-	teo.WsServer = ws.New(teo.processMessage)
 
 	// Start Teonet client
 	teo.Teonet, err = teonet.New(appShort)
@@ -41,6 +43,9 @@ func New(appShort string) (teo *TeonetServer, err error) {
 		err = fmt.Errorf("can't connect to Teonet, error: " + err.Error())
 		return
 	}
+
+	// Create websocket server
+	teo.WsServer = ws.New(teo.processMessage)
 
 	return
 }
@@ -95,13 +100,17 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 
 	// Process ConnectTo peer command
 	case command.ConnectTo:
+		teo.Lock()
+		defer teo.Unlock()
 		addr := string(cmd.Data)
 		if err = teo.ConnectTo(addr); err != nil {
 			err = fmt.Errorf("can't connect to peer %s, error: %s", addr, err)
 			log.Println(err)
 			return
 		}
-		data = []byte(fmt.Sprintf("Connected to peer %s", addr))
+		str := fmt.Sprintf("Connected to peer %s", addr)
+		data = []byte(str)
+		log.Println(str)
 
 	// Process NewAPIClient command
 	case command.NewApiClient:
@@ -115,7 +124,9 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 			}
 			teo.apiClients.Add(addr, cli)
 		}
-		data = []byte(fmt.Sprintf("Connected to peer %s api", addr))
+		str := fmt.Sprintf("Connected to peer %s api", addr)
+		data = []byte(str)
+		log.Println(str)
 
 	// Process SendTo command
 	case command.ApiSendTo:

@@ -118,7 +118,7 @@ func (teo *teofortune) fortune() (msg string, err error) {
 	if err != nil {
 		return
 	}
-	log.Println("Send id:", id)
+	log.Println("Send id", id, "ApiSendTo")
 	data, err := teo.WaitFrom(teo.client.Address(), uint32(id))
 	if err != nil {
 		return

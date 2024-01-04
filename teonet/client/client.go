@@ -21,19 +21,22 @@ type Teonet struct {
 func New(appShort string, onReconnected func()) (teo *Teonet, err error) {
 	teo = new(Teonet)
 	teo.ws = ws.NewWsClient(
-	// func(message []byte) bool {
-	// 	cmd := command.NewEmpty()
-	// 	err = cmd.UnmarshalBinary(message)
-	// 	if err != nil {
-	// 		log.Println("Can't unmarshal teonet proxy server command, error:",
-	// 			err, string(message))
-	// 		return false
-	// 	}
-	// 	log.Println("Got Teonet proxy server command:", cmd.Cmd.String(),
-	// 		string(cmd.Data))
+		// Common reader. It process Id 0 command answers.
+		func(message []byte) bool {
+			cmd := command.NewEmpty()
+			err = cmd.UnmarshalBinary(message)
+			if err != nil {
+				log.Println("Can't unmarshal teonet proxy server command, error:",
+					err, string(message))
+				return false
+			}
+			if cmd.Id == 0 {
+				log.Println("Recv id", cmd.Id, cmd.Cmd.String())
+				return true
+			}
 
-	// 	return false
-	// },
+			return false
+		},
 	)
 	err = teo.ws.Connect(onReconnected)
 	return
@@ -90,10 +93,10 @@ func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
 				err, string(message))
 			return false
 		}
-		log.Println("Got id", cmd.Id)
 		if cmd.Id != id {
 			return false
 		}
+		log.Println("Recv id", cmd.Id, cmd.Cmd.String())
 		log.Println("Got Teonet proxy server command:", cmd.Cmd.String(),
 			string(cmd.Data))
 

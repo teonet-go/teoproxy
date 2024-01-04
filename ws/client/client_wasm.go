@@ -105,7 +105,6 @@ func (ws *WsClient) Connect(onReconnected func()) (err error) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		err = fmt.Errorf("timeout")
-		return
 	}
 
 	return
