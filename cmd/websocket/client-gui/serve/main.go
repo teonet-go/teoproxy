@@ -42,6 +42,7 @@ import (
 
 	"github.com/teonet-go/teoproxy/teonet/server"
 	"golang.org/x/crypto/acme/autocert"
+	"github.com/NYTimes/gziphandler"
 )
 
 const (
@@ -74,7 +75,7 @@ func main() {
 	http.HandleFunc("/hello", handler)
 
 	// Create a file server to serve static files from the "wasm" directory
-	frontendFS := http.FileServer(http.FS(getFrontendAssets()))
+	frontendFS := gziphandler.GzipHandler(http.FileServer(http.FS(getFrontendAssets())))
 	http.Handle("/", frontendFS)
 
 	// Register websocket server
