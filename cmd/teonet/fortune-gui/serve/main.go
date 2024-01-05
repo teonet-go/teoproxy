@@ -1,12 +1,16 @@
-// The teoproxy client-gui example web serve package.
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// The teoproxy fortune-gui example web serve package.
 //
 // How to build this web application server:
 //
 //	# Install fyne executible (if not installed)
 //	go install fyne.io/fyne/v2/cmd/fyne@latest
 //
-//	# Go to serve folder inside client-gui folder
-//	cd cmd/websocket/client-gui/serve
+//	# Go to serve folder inside fortune-gui folder
+//	cd cmd/websocket/fortune-gui/serve
 //
 //	# Build web package
 //	fyne package -os wasm --sourceDir ../

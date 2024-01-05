@@ -1,3 +1,38 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// This a GUI application in Go.
+//
+// The main function is the entry point of the program. It initializes a
+// connection to the Teonet network and Teofortune service, and then launches
+// the graphical user interface (GUI).
+//
+// It first tries to connect to Teonet and Teofortune by calling newTeofortune,
+// passing the application name and Teofortune address. newTeofortune returns a
+// teofortune object that contains the Teonet client and Teofortune API client.
+// If there is an error connecting, it prints the error and exits the program.
+//
+// If the connection is successful, it calls the newGui method on the teofortune
+// object. This will create and display the GUI window.
+//
+// The main purpose of main is to initialize the networking connections and
+// launch the user interface. It takes no direct inputs. Its output is to start
+// up the GUI application.
+//
+// It achieves this by first initializing the back-end networking using
+// newTeofortune. This sets up the ability to connect to Teonet and Teofortune.
+// Once that is done, it launches the front-end GUI by calling newGui.
+//
+// The main logic flow is:
+//
+// - Initialize networking
+// - If no errors, launch GUI
+// - If errors, print error and exit
+//
+// So in summary, main handles setting up the app and starting it up,
+// delegating the specific networking and GUI code to other functions. This is
+// a common structure for main functions - initialize, then launch.
 package main
 
 import (
@@ -18,10 +53,12 @@ const (
 	teoFortune = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF"
 )
 
+// main is the entry point of the program.
+//
+// It then connects to the Teonet and Teofortune server using the newTeofortune function.
+// If there is an error connecting to Teonet, it prints an error message and returns.
+// Finally, it creates and runs the gui interface using the newGui function.
 func main() {
-
-	// Teonet application logo
-	// teonet.Logo(appName, appVersion)
 
 	// Connect to Teonet and Teofortune server
 	teo, err := newTeofortune(appShort, teoFortune)
@@ -42,7 +79,17 @@ type teofortune struct {
 	client         *client.APIClient // Teofortune api client
 }
 
-// newTeofortune connects to Teonet and Teofortune server(peer)
+// newTeofortune initializes a new teofortune instance with a Teonet client
+// and API client to connect to the Teonet network and Teofortune service.
+// It takes the application short name and Teofortune server address as arguments.
+//
+// It creates a new teofortune instance and sets the Teofortune address.
+// It initializes the Teonet client with an onConnected callback.
+// In the callback it connects to the Teonet network and Teofortune service,
+// and initializes the Teofortune API client.
+// It returns the teofortune instance and any error.
+//
+// This allows creating a Teofortune client instance connected to Teonet.
 func newTeofortune(appShort, teoFortune string) (teo *teofortune, err error) {
 
 	teo = new(teofortune)
@@ -87,7 +134,9 @@ func newTeofortune(appShort, teoFortune string) (teo *teofortune, err error) {
 	return
 }
 
-// newGui creates and run gui interface
+// newGui creates and displays the GUI window for the fortune application.
+// It creates the window, sets up the widgets, handles user interaction
+// to refresh the fortune message, and displays the window.
 func (teo *teofortune) newGui() {
 	a := app.New()
 	w := a.NewWindow("Teofortune")
@@ -108,7 +157,7 @@ func (teo *teofortune) newGui() {
 	w.ShowAndRun()
 }
 
-// fortune gets fortune messsage from teofortune microservice
+// fortune gets fortune messsage from teofortune microservice.
 func (teo *teofortune) fortune() (msg string, err error) {
 
 	// Get fortune message from teofortune microservice
@@ -125,51 +174,3 @@ func (teo *teofortune) fortune() (msg string, err error) {
 	msg = string(data)
 	return
 }
-
-// -------------------------------------------------------------------------
-// func main_old() {
-
-// 	const appShort = "client-gui"
-
-// 	app := app.New()
-// 	w := app.NewWindow("Hello")
-// 	w.SetContent(widget.NewLabel("Hello Fyne!"))
-// 	w.Resize(fyne.NewSize(200, 200))
-
-// 	// Test connect to WebSocket server
-// 	// ws := ws.NewWsClient()
-// 	// err := ws.Connect()
-// 	// if err == nil {
-// 	// 	ws.SendMessage([]byte{1, 2, 3, 4, 5})
-// 	// }
-
-// 	// teoFortune peer
-// 	const peer = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF"
-
-// 	// Start Teonet proxy client
-// 	teo, err := client.New(appShort)
-// 	if err != nil {
-// 		log.Fatal("can't initialize Teonet, error:", err)
-// 	}
-// 	// Connect to Teonet using proxy server
-// 	err = teo.Connect()
-// 	if err != nil {
-// 		log.Fatal("can't connect to Teonet, error:", err)
-// 	}
-// 	// Connect to teoFortune server(peer)
-// 	if err = teo.ConnectTo(peer); err != nil {
-// 		log.Fatal("can't connect to peer, error:", err)
-// 	}
-// 	// Connet to fortune api
-// 	_, err = teo.NewAPIClient(peer)
-// 	if err != nil {
-// 		log.Fatal("can't connect to peer api, error:", err)
-// 		return
-// 	}
-// 	// Got fortune api data
-// 	teo.client.SendTo("fortb", nil)
-
-// 	log.Println("Connected to Teonet")
-
-// 	w.ShowAndRun()
-// }

@@ -1,5 +1,11 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 //go:build wasm
 
+// Package client provides the client side implementation for connecting to the
+// proxy server.
 package client
 
 import (
@@ -11,22 +17,34 @@ import (
 	"time"
 )
 
+// init initializes the logger by setting the log flags. This ensures
+// log messages include microseconds in the timestamp for more granular
+// timestamps.
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 }
 
-// WsClient is javascript websocket client to use in wasm application.
+// WsClient is the client implementation for connecting to the proxy server
+// via a WebSocket. It contains the underlying JavaScript WebSocket value
+// and the message readers.
 type WsClient struct {
 	js.Value
 	*Readers
 }
 
+// NewWsClient creates a new WsClient instance.
+// processMessage are optional ReaderFunc callbacks that will be used to process
+// incoming messages from the server.
 func NewWsClient(processMessage ...ReaderFunc) *WsClient {
 	ws := &WsClient{}
 	ws.newReaders(processMessage...)
 	return ws
 }
 
+// Connect establishes a WebSocket connection to the proxy server.
+// It handles creating the WebSocket, setting up event handlers,
+// reconnecting on close/errors, and waiting for the initial
+// connection.
 func (ws *WsClient) Connect(onReconnected func()) (err error) {
 	var connected bool
 	done := make(chan struct{}, 0)
@@ -128,22 +146,8 @@ func (ws *WsClient) Connect(onReconnected func()) (err error) {
 	return
 }
 
-// SendMessage sends a message to the websocket server
+// SendMessage sends a message to the websocket server.
 func (ws *WsClient) SendMessage(message []byte) {
 	ws.Value.Call("send", base64.StdEncoding.EncodeToString(message))
 	log.Println("Send message to server:", message)
 }
-
-// func (*WsClient) receiveMessages(conn *websocket.Conn) {
-// 	for {
-// 		// Read a message from the server
-// 		_, message, err := conn.ReadMessage()
-// 		if err != nil {
-// 			log.Println("Error receiving message from WebSocket server:", err)
-// 			return
-// 		}
-
-// 		// Process the received message
-// 		log.Println("Received message from server:", string(message))
-// 	}
-// }

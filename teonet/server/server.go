@@ -1,3 +1,8 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Server package contains the server implementation for the Teonet proxy.
 package server
 
 import (
@@ -15,10 +20,18 @@ import (
 	ws "github.com/teonet-go/teoproxy/ws/server"
 )
 
+// init initializes the Go program.
+//
+// It sets the log flags to include the standard date and time format, as well
+// as microseconds.
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 }
 
+// TeonetServer is the main server type that contains the core components.
+// It has mutexes for synchronization, the websocket server,
+// the Teonet client, and API clients. As an exported type, it is part of the
+// public API.
 type TeonetServer struct {
 	*sync.Mutex
 	*ws.WsServer
@@ -26,6 +39,7 @@ type TeonetServer struct {
 	apiClients *APIClients
 }
 
+// TeonetMonitor contains monitoring information to send to the Teonet monitor.
 type TeonetMonitor struct {
 	Addr         string
 	AppName      string
@@ -35,6 +49,12 @@ type TeonetMonitor struct {
 	AppStartTime time.Time
 }
 
+// New creates a new TeonetServer instance. It initializes the mutex, API clients,
+// Teonet client, and websocket server. The appShort parameter specifies the
+// application name. The monitor parameter optionally configures connecting to a
+// Teonet monitor for metrics reporting. It returns the TeonetServer instance
+// and any error. As an exported function, this serves as the main constructor for
+// the TeonetServer type.
 func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error) {
 	teo = &TeonetServer{Mutex: new(sync.Mutex)}
 
@@ -72,6 +92,10 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 	return
 }
 
+// processMessage processes a websocket message received from a client.
+// It decodes the base64 encoded message, unmarshals the teonet command,
+// processes the command by calling processCommand, and writes the response
+// back to the client.
 func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 
 	// decode message base64
@@ -107,6 +131,9 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	}
 }
 
+// processCommand processes a Teonet command received from a client.
+// It handles different command types like Connect, Disconnect etc.
+// Returns the response data and error.
 func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 	err error) {
 
@@ -206,11 +233,16 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 	return
 }
 
+// APIClients stores a map of APIClient instances, keyed by peer name.
+// It uses a RWMutex for concurrent access control.
 type APIClients struct {
 	m map[string]*teonet.APIClient
 	*sync.RWMutex
 }
 
+// initAPIClients initializes the apiClients field of the TeonetServer.
+// It creates a new APIClients instance to store API client connections
+// in a concurrent map, protected by an RWMutex.
 func (teo *TeonetServer) initAPIClients() {
 	teo.apiClients = &APIClients{
 		m:       make(map[string]*teonet.APIClient),
@@ -218,6 +250,11 @@ func (teo *TeonetServer) initAPIClients() {
 	}
 }
 
+// Add adds a new APIClient instance to the APIClients map,
+// keyed by the provided name. It locks the map during the update
+// to prevent concurrent map writes. It first checks if a client
+// already exists for the given name and returns immediately if
+// so to avoid overwriting the existing client.
 func (cli *APIClients) Add(name string, api *teonet.APIClient) {
 	cli.Lock()
 	defer cli.Unlock()
@@ -229,12 +266,19 @@ func (cli *APIClients) Add(name string, api *teonet.APIClient) {
 	cli.m[name] = api
 }
 
+// Remove removes the APIClient instance for the given name from the APIClients
+// map. It locks the map during the update to prevent concurrent map writes.
 func (cli *APIClients) Remove(name string) {
 	cli.Lock()
 	defer cli.Unlock()
 	delete(cli.m, name)
 }
 
+// Get retrieves the APIClient instance for the given name from the
+// APIClients map. It locks the map for reading during the lookup to
+// prevent concurrent map access. The second return value indicates
+// if a client was found. This is an exported method that is part of
+// the APIClients API.
 func (cli *APIClients) Get(name string) (api *teonet.APIClient, ok bool) {
 	cli.RLock()
 	defer cli.RUnlock()
@@ -242,6 +286,8 @@ func (cli *APIClients) Get(name string) (api *teonet.APIClient, ok bool) {
 	return
 }
 
+// Exists checks if an APIClient with the given name exists in the APIClients
+// map. It calls the Get method and checks if it returned a client.
 func (cli *APIClients) Exists(name string) bool {
 	_, ok := cli.Get(name)
 	return ok

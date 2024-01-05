@@ -1,3 +1,7 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Package command provides teonet proxy server commands binary protocol.
 package command
 
@@ -7,7 +11,6 @@ import (
 	"fmt"
 )
 
-// Teonet proxy commands
 const (
 	cmdNone      Command = iota
 	Connect              // Connect to Teonet
@@ -33,6 +36,7 @@ type TeonetCmd struct {
 	Err  error   // Error
 }
 
+// Command represents the command type for Teonet proxy commands.
 type Command byte
 
 // String returns the string representation of the Command.
@@ -165,7 +169,7 @@ func (c *TeonetCmd) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// checksum calculates checksum for given data
+// checksum calculates checksum for given data.
 func (c TeonetCmd) checksum(data []byte) byte {
 	var sum byte
 	for i := 0; i < len(data); i++ {

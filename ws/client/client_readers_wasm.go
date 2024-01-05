@@ -1,4 +1,10 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 //go:build wasm
+
+// Package client provides client-side WebSocket functionality.
 
 package client
 
@@ -8,7 +14,7 @@ import (
 	"sync"
 )
 
-// Readers holds a map of ReaderFunc callbacks and a mutex for concurrent access.
+// Readers holds the map of ReaderFunc callbacks and a RWMutex for concurrent access.
 type Readers struct {
 	m map[string]ReaderFunc
 	*sync.RWMutex

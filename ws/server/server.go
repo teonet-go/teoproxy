@@ -1,3 +1,8 @@
+// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package server provides the WebSocket server implementation.
 package server
 
 import (
@@ -8,14 +13,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WsServer is a WebSocket server that handles WebSocket connections.
+// It contains a processMessage field which is a slice of functions to process
+// incoming WebSocket messages.
 type WsServer struct {
 	processMessage []func(conn *websocket.Conn, message []byte)
 }
 
+// New creates a new WsServer instance with the provided message processing
+// functions. The processMessage functions will be called to handle each
+// incoming WebSocket message.
 func New(processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
 	return &WsServer{processMessage: processMessage}
 }
 
+// HandleWebSocket handles websocket requests by upgrading
+// the HTTP connection to a WebSocket connection.
 func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -28,6 +41,9 @@ func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go s.handleConnection(conn)
 }
 
+// handleConnection handles an incoming WebSocket connection.
+// It reads messages from the client, processes them by calling functions in
+// processMessage, and runs until the connection is closed.
 func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
@@ -52,8 +68,10 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	log.Println("A ws client disconnected", conn.RemoteAddr())
 }
 
+// processMessage handles incoming WebSocket messages from clients.
+// It logs the message, processes it, and writes a response.
 func processMessage(conn *websocket.Conn, message []byte) {
-	// Process message logic here
+	// Print message to console
 	log.Println("Received message:", message, string(message))
 
 	// Write response to client
@@ -61,6 +79,9 @@ func processMessage(conn *websocket.Conn, message []byte) {
 }
 
 // SendMessage sends a message to the websocket client
+// sendMessage sends a message to the websocket client.
+// It encodes the message as base64 text and writes it to the client.
+// Returns any error from writing the message.
 func sendMessage(conn *websocket.Conn, message []byte) (err error) {
 	if err = conn.WriteMessage(websocket.TextMessage,
 		[]byte(base64.StdEncoding.EncodeToString(message))); err != nil {
