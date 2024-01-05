@@ -40,9 +40,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/teonet-go/teoproxy/teonet/server"
 	"golang.org/x/crypto/acme/autocert"
-	"github.com/NYTimes/gziphandler"
 )
 
 const (
@@ -61,9 +61,11 @@ func main() {
 
 	// Parse application parameters
 	var laddr string
+	var gzip bool
 	//
 	flag.StringVar(&domain, "domain", "", "domain name to process HTTP/s server")
 	flag.StringVar(&laddr, "laddr", "localhost:8081", "local address of http, used if domain doesn't set")
+	flag.BoolVar(&gzip, "gzip", false, "gzip http files")
 	flag.Parse()
 
 	// Define Hello handler function for the HTTP requests
@@ -75,7 +77,12 @@ func main() {
 	http.HandleFunc("/hello", handler)
 
 	// Create a file server to serve static files from the "wasm" directory
-	frontendFS := gziphandler.GzipHandler(http.FileServer(http.FS(getFrontendAssets())))
+	var frontendFS http.Handler
+	if gzip {
+		frontendFS = gziphandler.GzipHandler(http.FileServer(http.FS(getFrontendAssets())))
+	} else {
+		frontendFS = http.FileServer(http.FS(getFrontendAssets()))
+	}
 	http.Handle("/", frontendFS)
 
 	// Register websocket server
