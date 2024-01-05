@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/teonet-go/teomon"
 	"github.com/teonet-go/teonet"
 	"github.com/teonet-go/teoproxy/ws/command"
 	ws "github.com/teonet-go/teoproxy/ws/server"
@@ -25,7 +26,16 @@ type TeonetServer struct {
 	apiClients *APIClients
 }
 
-func New(appShort string) (teo *TeonetServer, err error) {
+type TeonetMonitor struct {
+	Addr         string
+	AppName      string
+	AppShort     string
+	AppVersion   string
+	TeoVersion   string
+	AppStartTime time.Time
+}
+
+func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error) {
 	teo = &TeonetServer{Mutex: new(sync.Mutex)}
 
 	// Init api clients object
@@ -43,6 +53,18 @@ func New(appShort string) (teo *TeonetServer, err error) {
 		err = fmt.Errorf("can't connect to Teonet, error: " + err.Error())
 		return
 	}
+
+	// Connect to monitor
+	if monitor != nil && len(monitor.Addr) > 0 {
+		teomon.Connect(teo.Teonet, monitor.Addr, teomon.Metric{
+			AppName:      monitor.AppName,
+			AppShort:     monitor.AppShort,
+			AppVersion:   monitor.AppVersion,
+			TeoVersion:   teonet.Version,
+			AppStartTime: time.Now(),
+		})
+	}
+	log.Println("Connected to monitor")
 
 	// Create websocket server
 	teo.WsServer = ws.New(teo.processMessage)

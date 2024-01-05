@@ -46,7 +46,9 @@ import (
 )
 
 const (
-	appShort = "client-gui-serve"
+	appShort   = "fortune-gui-serve"
+	appName    = "Fortune-gui web server"
+	appVersion = "0.0.1"
 )
 
 var domain string
@@ -60,11 +62,12 @@ var domain string
 func main() {
 
 	// Parse application parameters
-	var laddr string
+	var monitor, laddr string
 	var gzip bool
 	//
 	flag.StringVar(&domain, "domain", "", "domain name to process HTTP/s server")
 	flag.StringVar(&laddr, "laddr", "localhost:8081", "local address of http, used if domain doesn't set")
+	flag.StringVar(&monitor, "monitor", "", "teonet monitor address")
 	flag.BoolVar(&gzip, "gzip", false, "gzip http files")
 	flag.Parse()
 
@@ -85,8 +88,13 @@ func main() {
 	}
 	http.Handle("/", frontendFS)
 
-	// Register websocket server
-	serve, err := server.New(appShort)
+	// Register teonet proxy server handler
+	serve, err := server.New(appShort, &server.TeonetMonitor{
+		Addr:       monitor,
+		AppName:    appName,
+		AppShort:   appShort,
+		AppVersion: "0.0.1",
+	})
 	if err != nil {
 		fmt.Println("Create teonet proxy server error:", err)
 		return
