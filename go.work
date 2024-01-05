@@ -2,11 +2,13 @@ go 1.21.5
 
 use (
 .
-cmd/websocket/client
-cmd/websocket/client-gui
-cmd/websocket/client-gui/serve
-cmd/websocket/server
+cmd/ws/client
+cmd/ws/server
+cmd/teonet/fortune-gui
+cmd/teonet/fortune-gui/serve
 ws/client
 ws/server
 ws/command
+teonet/client
+teonet/server
 )

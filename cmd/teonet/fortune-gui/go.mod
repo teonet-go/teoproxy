@@ -1,10 +1,16 @@
-module github.com/teonet-go/teoproxy/cmd/websocket/client-gui
+module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui
 
 go 1.21.5
 
+replace github.com/teonet-go/teoproxy/teonet/client => ../../../teonet/client/
+
+replace github.com/teonet-go/teoproxy/ws/client => ../../../ws/client/
+
+replace github.com/teonet-go/teoproxy/ws/command => ../../../ws/command/
+
 require (
 	fyne.io/fyne/v2 v2.4.3
-	github.com/gorilla/websocket v1.5.1
+	github.com/teonet-go/teoproxy/teonet/client v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -22,6 +28,7 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/kirill-scherba/bslice v0.0.2 // indirect
 	github.com/kirill-scherba/stable v0.0.8 // indirect
@@ -30,6 +37,8 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/teonet-go/teonet v0.6.6 // indirect
+	github.com/teonet-go/teoproxy/ws/client v0.0.0-00010101000000-000000000000 // indirect
+	github.com/teonet-go/teoproxy/ws/command v0.0.0-00010101000000-000000000000 // indirect
 	github.com/teonet-go/tru v0.0.18 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/yuin/goldmark v1.5.5 // indirect
