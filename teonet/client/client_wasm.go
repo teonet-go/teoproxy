@@ -1,5 +1,7 @@
 // Teonet wasm client to use in wasm applications
 
+//go:build wasm
+
 package client
 
 import (
@@ -17,7 +19,7 @@ type Teonet struct {
 	id uint32       // Packet id
 }
 
-// Start Teonet client
+// New starts Teonet client
 func New(appShort string, onReconnected func()) (teo *Teonet, err error) {
 	teo = new(Teonet)
 	teo.ws = ws.NewWsClient(
