@@ -2,9 +2,8 @@ module github.com/teonet-go/teoproxy/teonet/client
 
 go 1.21.5
 
-replace github.com/teonet-go/teoproxy/ws/client => ../../ws/client/
-
-replace github.com/teonet-go/teoproxy/ws/command => ../../ws/command/
+// replace github.com/teonet-go/teoproxy/ws/client => ../../ws/client/
+// replace github.com/teonet-go/teoproxy/ws/command => ../../ws/command/
 
 require (
 	github.com/teonet-go/teonet v0.6.6

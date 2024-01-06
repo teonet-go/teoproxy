@@ -2,11 +2,9 @@ module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui/serve
 
 go 1.21.5
 
-replace github.com/teonet-go/teoproxy/teonet/server => ../../../../teonet/server/
-
-replace github.com/teonet-go/teoproxy/ws/command => ../../../../ws/command/
-
-replace github.com/teonet-go/teoproxy/ws/server => ../../../../ws/server/
+// replace github.com/teonet-go/teoproxy/teonet/server => ../../../../teonet/server/
+// replace github.com/teonet-go/teoproxy/ws/command => ../../../../ws/command/
+// replace github.com/teonet-go/teoproxy/ws/server => ../../../../ws/server/
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1

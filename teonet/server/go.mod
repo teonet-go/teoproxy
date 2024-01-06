@@ -2,11 +2,9 @@ module github.com/teonet-go/teoproxy/teonet/server
 
 go 1.21.5
 
-replace github.com/teonet-go/teoproxy/ws/client => ../../ws/client/
-
-replace github.com/teonet-go/teoproxy/ws/command => ../../ws/command/
-
-replace github.com/teonet-go/teoproxy/ws/server => ../../ws/server/
+// replace github.com/teonet-go/teoproxy/ws/client => ../../ws/client/
+// replace github.com/teonet-go/teoproxy/ws/command => ../../ws/command/
+// replace github.com/teonet-go/teoproxy/ws/server => ../../ws/server/
 
 require (
 	github.com/gorilla/websocket v1.5.1

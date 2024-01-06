@@ -2,11 +2,9 @@ module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui
 
 go 1.21.5
 
-replace github.com/teonet-go/teoproxy/teonet/client => ../../../teonet/client/
-
-replace github.com/teonet-go/teoproxy/ws/client => ../../../ws/client/
-
-replace github.com/teonet-go/teoproxy/ws/command => ../../../ws/command/
+// replace github.com/teonet-go/teoproxy/teonet/client => ../../../teonet/client/
+// replace github.com/teonet-go/teoproxy/ws/client => ../../../ws/client/
+// replace github.com/teonet-go/teoproxy/ws/command => ../../../ws/command/
 
 require (
 	fyne.io/fyne/v2 v2.4.3
