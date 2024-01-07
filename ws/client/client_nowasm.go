@@ -22,7 +22,7 @@ type WsClient struct {
 
 // NewWsClient creates a new instance of the WsClient struct.
 //
-// The function accepts a variadic parameter `processMessage` of type 
+// The function accepts a variadic parameter `processMessage` of type
 // `func(message []byte) bool`. It returns a pointer to a WsClient instance.
 func NewWsClient(processMessage ...func(message []byte) bool) *WsClient {
 	return &WsClient{}

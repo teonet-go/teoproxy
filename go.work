@@ -3,5 +3,5 @@ go 1.21.5
 use (
 	.
 	./cmd/teonet/fortune-gui
-    ./cmd/teonet/fortune-gui/serve
+	./cmd/teonet/fortune-gui/serve
 )

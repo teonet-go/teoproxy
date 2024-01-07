@@ -152,7 +152,7 @@ func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
 }
 
 // APIClient is a client for making API calls to peers over a Teonet connection.
-// It contains the Teonet client instance and address of the peer to send 
+// It contains the Teonet client instance and address of the peer to send
 // requests to.
 type APIClient struct {
 	teo  *Teonet

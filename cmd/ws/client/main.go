@@ -19,7 +19,7 @@
 //
 // So in summary, this code sets up a WebSocket client, connects to a server,
 // sends an initial message, and then processes responses continuously as they
-// arrive from the server. The goroutine allows bi-directional communication 
+// arrive from the server. The goroutine allows bi-directional communication
 // with asynchronous receive handling.
 //
 // The main purpose is to demonstrate a simple WebSocket client in Go that can
