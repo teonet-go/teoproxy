@@ -13,7 +13,7 @@
 //	cd cmd/websocket/fortune-gui/serve
 //
 //	# Build web package
-//	fyne package -os wasm --sourceDir ../
+//	fyne package -os wasm --appVersion=0.0.3 --sourceDir ../
 //
 // (or you can use go generate command to build and run this web server)
 //
@@ -32,10 +32,7 @@
 //	# Build executible
 //	go build -tags=prod .
 //
-//	# Build executible for Linux
-//	GOOS=linux go build -tags=prod .
-//
-//go:generate fyne package -os wasm --sourceDir ../
+//go:generate fyne package -os wasm --appVersion=0.0.3 --sourceDir ../
 package main
 
 import (
@@ -52,7 +49,7 @@ import (
 const (
 	appShort   = "fortune-gui-serve"
 	appName    = "Fortune-gui web server"
-	appVersion = "0.0.1"
+	appVersion = "0.0.3"
 )
 
 var domain string
@@ -97,7 +94,7 @@ func main() {
 		Addr:       monitor,
 		AppName:    appName,
 		AppShort:   appShort,
-		AppVersion: "0.0.1",
+		AppVersion: appVersion,
 	})
 	if err != nil {
 		fmt.Println("Create teonet proxy server error:", err)

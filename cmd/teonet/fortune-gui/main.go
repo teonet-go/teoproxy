@@ -49,7 +49,7 @@ import (
 const (
 	appName    = "Teonet fortune golang GUI application"
 	appShort   = "teofortunegui"
-	appVersion = "0.0.1"
+	appVersion = "0.0.3"
 	teoFortune = "8agv3IrXQk7INHy5rVlbCxMWVmOOCoQgZBF"
 )
 

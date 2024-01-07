@@ -276,6 +276,8 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/teonet-go/teonet v0.6.6 h1:gYYGcKUNUt6GuGgFegs0lUZnCNJGr1xFCxo/vMqVjJU=
 github.com/teonet-go/teonet v0.6.6/go.mod h1:pBFprJoM85AvPYsOYwsFKaNJ7hwCMBFhzZ/M4l4pFno=
+github.com/teonet-go/teoproxy v0.0.3 h1:MtktpuZA1/PjZuIOc0GdQZO2aWdlluJLVJ7dY2pWG+k=
+github.com/teonet-go/teoproxy v0.0.3/go.mod h1:FKXkncMF6iMBRM1AlqFdtImMcGe2VhQV6/10mHiMBgk=
 github.com/teonet-go/tru v0.0.18 h1:4BR9zpqY0jMmTXsXzyCc4DokMucnqLcsMD+C9uilDro=
 github.com/teonet-go/tru v0.0.18/go.mod h1:xCKC3B0JbfE2C8OliN/CJ7R1gGQbnTIKKWLBaC4oBLY=
 github.com/tevino/abool v1.2.0 h1:heAkClL8H6w+mK5md9dzsuohKeXHUpY7Vw0ZCKW+huA=
