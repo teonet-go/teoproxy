@@ -58,7 +58,7 @@ COPY . .
 
 RUN go install fyne.io/fyne/v2/cmd/fyne@latest
 RUN cd ./cmd/teonet/fortune-gui/serve && go get
-RUN cd ./cmd/teonet/fortune-gui/serve && fyne package -os wasm --sourceDir ../
+RUN cd ./cmd/teonet/fortune-gui/serve && go generate
 RUN cd ./cmd/teonet/fortune-gui/serve && go install -tags=prod .
 
 # Final stage
@@ -67,4 +67,4 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/* /usr/local/bin/
 CMD "serve"
-LABEL Name=fortune-gui Version=0.0.1
+LABEL Name=fortune-gui Version=0.0.3
