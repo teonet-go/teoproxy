@@ -2,13 +2,11 @@ module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui
 
 go 1.21.5
 
-// replace github.com/teonet-go/teoproxy/teonet/client => ../../../teonet/client/
-// replace github.com/teonet-go/teoproxy/ws/client => ../../../ws/client/
-// replace github.com/teonet-go/teoproxy/ws/command => ../../../ws/command/
+// replace github.com/teonet-go/teoproxy => ../../..
 
 require (
 	fyne.io/fyne/v2 v2.4.3
-	github.com/teonet-go/teoproxy/teonet/client v0.0.0-00010101000000-000000000000
+	github.com/teonet-go/teoproxy v0.0.2
 )
 
 require (
@@ -35,16 +33,14 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/teonet-go/teonet v0.6.6 // indirect
-	github.com/teonet-go/teoproxy/ws/client v0.0.0-00010101000000-000000000000 // indirect
-	github.com/teonet-go/teoproxy/ws/command v0.0.0-00010101000000-000000000000 // indirect
 	github.com/teonet-go/tru v0.0.18 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/yuin/goldmark v1.5.5 // indirect
 	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
 )
