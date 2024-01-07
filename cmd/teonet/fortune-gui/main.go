@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This a GUI application in Go.
+// Example:This a GUI application in Go.
 //
 // The main function is the entry point of the program. It initializes a
 // connection to the Teonet network and Teofortune service, and then launches

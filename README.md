@@ -48,6 +48,8 @@ go run .
 
 By default web server runs on `localhost:8081` port. So you can open this url in your browser: [http://localhost:8081](http://localhost:8081) and see the fortune-gui application in your browser.
 
+There is preinstalled teofortune-gui web-app with name [fortune-gui.teonet.dev](https://fortune-gui.teonet.dev)
+
 ## License
 
 [BSD](LICENSE)

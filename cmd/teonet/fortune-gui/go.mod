@@ -6,7 +6,7 @@ go 1.21.5
 
 require (
 	fyne.io/fyne/v2 v2.4.3
-	github.com/teonet-go/teoproxy v0.0.2
+	github.com/teonet-go/teoproxy v0.0.3
 )
 
 require (

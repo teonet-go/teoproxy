@@ -6,7 +6,7 @@ go 1.21.5
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/teonet-go/teoproxy v0.0.2
+	github.com/teonet-go/teoproxy v0.0.3
 	golang.org/x/crypto v0.17.0
 )
 
