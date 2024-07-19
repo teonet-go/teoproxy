@@ -39,7 +39,7 @@
 
 # Build stage
 #
-FROM golang:1.22.5-alpine AS builder
+FROM golang:1.22.5-alpine3.19 AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY . .
@@ -67,4 +67,4 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/* /usr/local/bin/
 CMD "serve"
-LABEL Name=fortune-gui Version=0.0.3
+LABEL Name=fortune-gui Version=0.0.4
