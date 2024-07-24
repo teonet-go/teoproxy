@@ -30,7 +30,12 @@ func New(processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer
 // HandleWebSocket handles websocket requests by upgrading
 // the HTTP connection to a WebSocket connection.
 func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	upgrader := websocket.Upgrader{}
+	upgrader := websocket.Upgrader{
+		// Allow cross-origin websocket connections
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Failed to upgrade connection:", err)

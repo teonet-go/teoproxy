@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TeoProxy Client</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🤑</text></svg>'>
+    <script type="module">
+        import { nextMessage } from "./client.js";
+        document.getElementById('nextMessage').addEventListener('click', nextMessage);
+    </script>
+</head>
+
+<body>
+    Fortune message from Teofortune server: <br>
+    <br>
+    <button type="button" id="nextMessage">Next message</button>
+    <br>
+    <pre id="fortune"></pre>
+</body>
+
+</html>
