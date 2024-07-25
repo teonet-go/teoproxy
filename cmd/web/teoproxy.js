@@ -93,11 +93,11 @@ class TeoProxyClient {
             },
 
             /** Send message to peer. */
-            sendTo: function (name, data) {
+            sendTo: function (name, cmd, data) {
                 let pac = new Packet(Command.SendTo);
                 pac.id = that.nextId();
                 pac.data = name;
-                pac.data += "," + data + ",";
+                pac.data += "," + cmd + "," + data;
                 that.send(pac);
             }
         }
