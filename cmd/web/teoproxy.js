@@ -9,7 +9,8 @@ export const Command = {
     ConnectTo: 3, // Connect to peer
     NewApiClient: 4, // New API client
     SendTo: 5, // Send API request
-    cmdCount: 6
+    Sream: 6, // Stream command to get data from peer
+    cmdCount: 7
 };
 
 //* Teonet proxy client class */
@@ -20,6 +21,7 @@ class TeoProxyClient {
     //* Teonet proxy client */
     constructor() {
         this.socket = null;
+        this.onclose = null;
         this.onmessage = null;
         this.cmd = this.makeCommands(this);
     }
@@ -42,6 +44,10 @@ class TeoProxyClient {
 
         this.socket.onopen = function (evt) {
             if (onopen) onopen();
+        }
+
+        this.socket.onclose = (event) => {
+            if (this.onclose) this.onclose(event);
         }
 
         this.socket.onmessage = (event) => {
@@ -98,6 +104,13 @@ class TeoProxyClient {
                 pac.id = that.nextId();
                 pac.data = name;
                 pac.data += "," + cmd + "," + data;
+                that.send(pac);
+            },
+
+            /** Create answer socket */
+            stream: function (name, stream) {
+                let pac = new Packet(Command.Sream);
+                pac.data = name + "," + stream;
                 that.send(pac);
             }
         }

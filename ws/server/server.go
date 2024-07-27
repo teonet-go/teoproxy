@@ -18,13 +18,14 @@ import (
 // incoming WebSocket messages.
 type WsServer struct {
 	processMessage []func(conn *websocket.Conn, message []byte)
+	onClose        func(conn *websocket.Conn)
 }
 
 // New creates a new WsServer instance with the provided message processing
 // functions. The processMessage functions will be called to handle each
 // incoming WebSocket message.
-func New(processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
-	return &WsServer{processMessage: processMessage}
+func New(onClose func(conn *websocket.Conn), processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
+	return &WsServer{processMessage: processMessage, onClose: onClose}
 }
 
 // HandleWebSocket handles websocket requests by upgrading
@@ -52,12 +53,12 @@ func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
-	log.Println("A ws client connected", conn.RemoteAddr())
+	log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
 	for {
 		// Read message from client
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("Failed to read message from client:", err)
+			log.Println("failed to read message from client:", err)
 			break
 		}
 
@@ -70,14 +71,18 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 			f(conn, message)
 		}
 	}
-	log.Println("A ws client disconnected", conn.RemoteAddr())
+
+	log.Printf("ws client disconnected %p, %s", conn, conn.RemoteAddr())
+	if s.onClose != nil {
+		s.onClose(conn)
+	}
 }
 
 // processMessage handles incoming WebSocket messages from clients.
 // It logs the message, processes it, and writes a response.
 func processMessage(conn *websocket.Conn, message []byte) {
 	// Print message to console
-	log.Println("Received message:", message, string(message))
+	log.Println("received message:", message, string(message))
 
 	// Write response to client
 	sendMessage(conn, []byte("Message received"))
@@ -90,9 +95,9 @@ func processMessage(conn *websocket.Conn, message []byte) {
 func sendMessage(conn *websocket.Conn, message []byte) (err error) {
 	if err = conn.WriteMessage(websocket.TextMessage,
 		[]byte(base64.StdEncoding.EncodeToString(message))); err != nil {
-		log.Println("Failed to write message to client:", err)
+		log.Println("failed to write message to client:", err)
 		return
 	}
-	log.Println("Message sent to client:", message)
+	log.Println("message sent to client:", message)
 	return
 }

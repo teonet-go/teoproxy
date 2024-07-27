@@ -18,6 +18,7 @@ const (
 	ConnectTo            // Connect to peer
 	NewApiClient         // New API Client
 	ApiSendTo            // Send API Command to peer
+	Stream               // Stream command
 	cmdCount             // Number of commands
 )
 
@@ -58,6 +59,8 @@ func (c Command) String() string {
 		return "NewApiClient"
 	case ApiSendTo:
 		return "ApiSendTo"
+	case Stream:
+		return "Stream"
 	default:
 		return "Unknown"
 	}

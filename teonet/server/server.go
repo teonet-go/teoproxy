@@ -37,6 +37,7 @@ type TeonetServer struct {
 	*ws.WsServer
 	*teonet.Teonet
 	apiClients *APIClients
+	stream     *StreamAnswer
 }
 
 // TeonetMonitor contains monitoring information to send to the Teonet monitor.
@@ -58,11 +59,11 @@ type TeonetMonitor struct {
 func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error) {
 	teo = &TeonetServer{Mutex: new(sync.Mutex)}
 
-	// Init api clients object
-	teo.initAPIClients()
+	// Init apiClients and stream objects
+	teo.newAPIClients()
 
 	// Start Teonet client
-	teo.Teonet, err = teonet.New(appShort)
+	teo.Teonet, err = teonet.New(appShort, teo.reader)
 	if err != nil {
 		return
 	}
@@ -87,9 +88,57 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 	log.Println("Connected to monitor")
 
 	// Create websocket server
-	teo.WsServer = ws.New(teo.processMessage)
+	teo.WsServer = ws.New(
+		// On websocket disconnect func
+		func(conn *websocket.Conn) {
+			teo.stream.RemoveConn(conn)
+		},
+		// On websocket message functions
+		teo.processMessage,
+	)
 
 	return
+}
+
+func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet, e *teonet.Event) bool {
+
+	if e.Err != nil {
+		return false
+	}
+
+	if e.Event != teonet.EventData {
+		return false
+	}
+
+	log.Printf("got packet in reader: id: %d, data len: %d, from %s", p.ID(),
+		len(p.Data()), c)
+
+	peer := c.String()
+	streem := strings.Split(string(p.Data()), "/")[0]
+	if conns, ok := teo.stream.Get(peer, streem); ok {
+		cmd := &command.TeonetCmd{}
+		cmd.Data = p.Data()
+		data, _ := cmd.MarshalBinary()
+		for _, conn := range conns {
+			if err := teo.WriteMessage(conn, websocket.TextMessage,
+				[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
+				log.Printf("can't write message to client %p, error: %s", conn,
+					err)
+			} else {
+				log.Printf("message sent to client %p, data len: %v", conn,
+					len(data))
+			}
+		}
+	}
+
+	return false
+}
+
+func (teo *TeonetServer) WriteMessage(conn *websocket.Conn, messageType int,
+	data []byte) error {
+	teo.Lock()
+	defer teo.Unlock()
+	return conn.WriteMessage(messageType, data)
 }
 
 // processMessage processes a websocket message received from a client.
@@ -101,7 +150,7 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	// decode message base64
 	message, err := base64.StdEncoding.DecodeString(string(message))
 	if err != nil {
-		log.Println("Can't decode message base64, error:", err)
+		log.Println("can't decode message base64, error:", err)
 		return
 	}
 
@@ -109,14 +158,14 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	cmd := &command.TeonetCmd{}
 	err = cmd.UnmarshalBinary(message)
 	if err != nil {
-		log.Println("Can't unmarshal teonet command, error:", err, string(message))
+		log.Println("can't unmarshal teonet command, error:", err, string(message))
 		return
 	}
-	log.Println("Got Teonet proxy client command:", cmd.Id, cmd.Cmd.String(),
+	log.Println("got Teonet proxy client command:", cmd.Id, cmd.Cmd.String(),
 		string(cmd.Data))
 
 	// Process command
-	data, err := teo.processCommand(cmd)
+	data, err := teo.processCommand(cmd, conn)
 	if err != nil {
 		log.Println("process command, error:", err)
 		return
@@ -125,16 +174,16 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	// Write response to client
 	cmd.Data, cmd.Err = data, err
 	data, _ = cmd.MarshalBinary()
-	if err = conn.WriteMessage(websocket.TextMessage,
+	if err = teo.WriteMessage(conn, websocket.TextMessage,
 		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
-		log.Println("Can't write message to client, error:", err)
+		log.Println("can't write message to client, error:", err)
 	}
 }
 
 // processCommand processes a Teonet command received from a client.
 // It handles different command types like Connect, Disconnect etc.
 // Returns the response data and error.
-func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
+func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd, conn *websocket.Conn) (data []byte,
 	err error) {
 
 	switch cmd.Cmd {
@@ -157,7 +206,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 			log.Println(err)
 			return
 		}
-		str := fmt.Sprintf("Connected to peer %s", addr)
+		str := fmt.Sprintf("connected to peer %s", addr)
 		data = []byte(str)
 		log.Println(str)
 
@@ -173,9 +222,24 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 			}
 			teo.apiClients.Add(addr, cli)
 		}
-		str := fmt.Sprintf("Connected to peer %s api", addr)
+		str := fmt.Sprintf("connected to peer %s api", addr)
 		data = []byte(str)
 		log.Println(str)
+
+	// Process sream command
+	case command.Stream:
+		// Split commands data to peer name and api command
+		splitData := strings.Split(string(cmd.Data), ",")
+		if len(splitData) < 2 {
+			err = fmt.Errorf("wrong command data: %s", string(cmd.Data))
+			return
+		}
+
+		peer := splitData[0]
+		stream := splitData[1]
+
+		teo.stream.Add(peer, stream, conn)
+		log.Printf("stream added, conn: %p, stream: %v", conn, teo.stream)
 
 	// Process SendTo command
 	case command.ApiSendTo:
@@ -183,7 +247,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		// Split commands data to peer name and api command
 		splitData := strings.Split(string(cmd.Data), ",")
 		if len(splitData) < 3 {
-			err = fmt.Errorf("wrong command data: %s", cmd.Cmd.String())
+			err = fmt.Errorf("wrong command data: %s", string(cmd.Data))
 			return
 		}
 
@@ -191,7 +255,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		apiCommand := splitData[1]
 		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
 
-		log.Println("Send api command:", string(apiCommand), " to peer:",
+		log.Println("send api command:", string(apiCommand), " to peer:",
 			apiPeerName, " data len:", len(apiCommandData))
 
 		// Api answer struct
@@ -211,7 +275,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 		}
 		// Send request to api peer
 		api.SendTo(apiCommand, apiCommandData, func(data []byte, err error) {
-			log.Println("Got response from peer, len:", len(data), " err:", err)
+			log.Println("got response from peer, len:", len(data), " err:", err)
 			w <- apiAnswer{data, err}
 		})
 
@@ -227,68 +291,14 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd) (data []byte,
 	// Unknown command
 	default:
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
-		log.Println("Unknown command:", err)
+		log.Println("unknown command:", err)
 	}
 
 	return
 }
 
-// APIClients stores a map of APIClient instances, keyed by peer name.
-// It uses a RWMutex for concurrent access control.
-type APIClients struct {
-	m map[string]*teonet.APIClient
-	*sync.RWMutex
-}
-
-// initAPIClients initializes the apiClients field of the TeonetServer.
-// It creates a new APIClients instance to store API client connections
-// in a concurrent map, protected by an RWMutex.
-func (teo *TeonetServer) initAPIClients() {
-	teo.apiClients = &APIClients{
-		m:       make(map[string]*teonet.APIClient),
-		RWMutex: &sync.RWMutex{},
-	}
-}
-
-// Add adds a new APIClient instance to the APIClients map,
-// keyed by the provided name. It locks the map during the update
-// to prevent concurrent map writes. It first checks if a client
-// already exists for the given name and returns immediately if
-// so to avoid overwriting the existing client.
-func (cli *APIClients) Add(name string, api *teonet.APIClient) {
-	cli.Lock()
-	defer cli.Unlock()
-
-	if _, ok := cli.m[name]; ok {
-		return
-	}
-
-	cli.m[name] = api
-}
-
-// Remove removes the APIClient instance for the given name from the APIClients
-// map. It locks the map during the update to prevent concurrent map writes.
-func (cli *APIClients) Remove(name string) {
-	cli.Lock()
-	defer cli.Unlock()
-	delete(cli.m, name)
-}
-
-// Get retrieves the APIClient instance for the given name from the
-// APIClients map. It locks the map for reading during the lookup to
-// prevent concurrent map access. The second return value indicates
-// if a client was found. This is an exported method that is part of
-// the APIClients API.
-func (cli *APIClients) Get(name string) (api *teonet.APIClient, ok bool) {
-	cli.RLock()
-	defer cli.RUnlock()
-	api, ok = cli.m[name]
-	return
-}
-
-// Exists checks if an APIClient with the given name exists in the APIClients
-// map. It calls the Get method and checks if it returned a client.
-func (cli *APIClients) Exists(name string) bool {
-	_, ok := cli.Get(name)
-	return ok
+// newAPIClients creates and initializes new APIClients and new StreamAnswer.
+func (teo *TeonetServer) newAPIClients() {
+	teo.apiClients = new(APIClients).Init()
+	teo.stream = new(StreamAnswer).Init()
 }
