@@ -71,7 +71,7 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 	// Connect to Teonet
 	err = teo.Connect()
 	if err != nil {
-		err = fmt.Errorf("can't connect to Teonet, error: " + err.Error())
+		err = fmt.Errorf("can't connect to Teonet, error: %s", err.Error())
 		return
 	}
 

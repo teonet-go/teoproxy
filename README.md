@@ -7,8 +7,7 @@ Teonet proxy client server packages to connect golang wasm applications with [Te
 
 Teoproxy provides a websocket client server packages that can be used to connect wasm application with it own web server which runs Teonet and connects to teonet peers used in wasm application.
 
-<p align="center">
-<img src="https://github.com/teonet-go/.github/blob/main/profile/microservices.jpg?raw=true" />
+![Teoproxy logo](https://github.com/teonet-go/.github/blob/main/profile/microservices.jpg?raw=true)
 </p>
 
 ## Getting started
