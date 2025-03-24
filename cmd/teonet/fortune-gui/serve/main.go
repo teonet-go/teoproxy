@@ -13,7 +13,7 @@
 //	cd cmd/websocket/fortune-gui/serve
 //
 //	# Build web package
-//	fyne package -os wasm --appVersion=0.0.3 --sourceDir ../
+//	fyne package -os wasm --appVersion=0.0.5 --sourceDir ../
 //
 // (or you can use go generate command to build and run this web server)
 //
@@ -32,7 +32,7 @@
 //	# Build executible
 //	go build -tags=prod .
 //
-//go:generate fyne package -os wasm --appVersion=0.0.3 --sourceDir ../
+//go:generate fyne package -os wasm --appVersion=0.0.5 --sourceDir ../
 package main
 
 import (
@@ -49,7 +49,7 @@ import (
 const (
 	appShort   = "fortune-gui-serve"
 	appName    = "Fortune-gui web server"
-	appVersion = "0.0.3"
+	appVersion = "0.0.5"
 )
 
 var domain string

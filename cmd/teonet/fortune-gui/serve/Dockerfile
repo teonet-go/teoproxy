@@ -22,7 +22,7 @@
 #   docker run --network host -it --rm fortune-gui serve
 #   docker run --network host -it --rm fortune-gui serve -laddr=localhost:9093 -gzip
 #
-#   docker run --name=fortune-gui --network host -it -d --restart=always -v $HOME/.config/teonet:/root/.config/teonet fortune-gui serve -laddr=localhost:9092 -gzip -monitor=XXXXX
+#   docker run --name=fortune-gui --network host -it -d --restart=always -v $HOME/.config/teonet:/root/.config/teonet fortune-gui serve -laddr=localhost:9092 -gzip -monitor=$TEOMONITOR_ADDR
 #   docker logs -f fortune-gui
 #
 # Publish to github:
@@ -39,7 +39,7 @@
 
 # Build stage
 #
-FROM golang:1.22.5-alpine3.19 AS builder
+FROM golang:1.24.0-alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY . .
@@ -67,4 +67,4 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/* /usr/local/bin/
 CMD "serve"
-LABEL Name=fortune-gui Version=0.0.4
+LABEL Name=fortune-gui Version=0.0.5

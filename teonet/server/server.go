@@ -161,8 +161,8 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 		log.Println("can't unmarshal teonet command, error:", err, string(message))
 		return
 	}
-	log.Println("got Teonet proxy client command:", cmd.Id, cmd.Cmd.String(),
-		string(cmd.Data))
+	log.Println("got client command:", cmd.Id, cmd.Cmd.String(), "data len:",
+		len(cmd.Data))
 
 	// Process command
 	data, err := teo.processCommand(cmd, conn)
@@ -255,8 +255,8 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd, conn *websocket.
 		apiCommand := splitData[1]
 		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
 
-		log.Println("send api command:", string(apiCommand), " to peer:",
-			apiPeerName, " data len:", len(apiCommandData))
+		log.Println("send api command:", string(apiCommand), "to peer:",
+			apiPeerName, "data len:", len(apiCommandData))
 
 		// Api answer struct
 		type apiAnswer struct {

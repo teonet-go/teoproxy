@@ -1,12 +1,12 @@
 module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui
 
-go 1.22.5
+go 1.24.0
 
 replace github.com/teonet-go/teoproxy => ../../..
 
 require (
-	fyne.io/fyne/v2 v2.5.0
-	github.com/teonet-go/teoproxy v0.0.4
+	fyne.io/fyne/v2 v2.5.5
+	github.com/teonet-go/teoproxy v0.0.5
 )
 
 require (
