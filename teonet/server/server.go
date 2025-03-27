@@ -38,6 +38,8 @@ type TeonetServer struct {
 	*teonet.Teonet
 	apiClients *APIClients
 	stream     *StreamAnswer
+
+	conn *websocket.Conn // Last client connection TODO: temporary property
 }
 
 // TeonetMonitor contains monitoring information to send to the Teonet monitor.
@@ -89,18 +91,30 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 
 	// Create websocket server
 	teo.WsServer = ws.New(
-		// On websocket disconnect func
+
+		// On websocket client open connection func
 		func(conn *websocket.Conn) {
+			// log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
+		},
+
+		// On websocket client close connection func
+		func(conn *websocket.Conn) {
+			// log.Printf("ws client disconnected %p %v", conn, conn.RemoteAddr())
 			teo.stream.RemoveConn(conn)
 		},
+
 		// On websocket message functions
-		teo.processMessage,
+		func(conn *websocket.Conn, message []byte) {
+			teo.conn = conn
+			teo.processMessage(conn, message)
+		},
 	)
 
 	return
 }
 
-func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet, e *teonet.Event) bool {
+func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
+	e *teonet.Event) bool {
 
 	if e.Err != nil {
 		return false
@@ -110,9 +124,21 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet, e *teonet.E
 		return false
 	}
 
-	log.Printf("got packet in reader: id: %d, data len: %d, from %s", p.ID(),
-		len(p.Data()), c)
+	log.Printf("got response in reader: id: %d, data len: %d, from %s %s", p.ID(),
+		len(p.Data()), c, string(p.Data()))
 
+	// Send API response
+	cmd := &command.TeonetCmd{}
+	cmd.Id, cmd.Cmd, cmd.Data, cmd.Err = uint32(p.ID()), command.ApiSendTo, p.Data(), nil
+
+	data, _ := cmd.MarshalBinary()
+	if err := teo.WriteMessage(teo.conn, websocket.TextMessage,
+		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
+		log.Println("can't write message to client, error:", err)
+	}
+	return false
+
+	// Send stream response
 	peer := c.String()
 	streem := strings.Split(string(p.Data()), "/")[0]
 	if conns, ok := teo.stream.Get(peer, streem); ok {
@@ -134,6 +160,7 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet, e *teonet.E
 	return false
 }
 
+// WriteMessage writes a message to a websocket connection.
 func (teo *TeonetServer) WriteMessage(conn *websocket.Conn, messageType int,
 	data []byte) error {
 	teo.Lock()
@@ -147,44 +174,50 @@ func (teo *TeonetServer) WriteMessage(conn *websocket.Conn, messageType int,
 // back to the client.
 func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 
+	var data []byte
+	var err error
+	cmd := &command.TeonetCmd{}
+
+	// Write response to client at the return
+	defer func() {
+		cmd.Data, cmd.Err = data, err
+		data, _ = cmd.MarshalBinary()
+		if err = teo.WriteMessage(conn, websocket.TextMessage,
+			[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
+			log.Println("can't write message to client, error:", err)
+		}
+	}()
+
 	// decode message base64
-	message, err := base64.StdEncoding.DecodeString(string(message))
+	message, err = base64.StdEncoding.DecodeString(string(message))
 	if err != nil {
-		log.Println("can't decode message base64, error:", err)
+		err = fmt.Errorf("can't decode message base64, error: %s", err.Error())
+		log.Println(err)
 		return
 	}
 
 	// Check teonet command
-	cmd := &command.TeonetCmd{}
 	err = cmd.UnmarshalBinary(message)
 	if err != nil {
-		log.Println("can't unmarshal teonet command, error:", err, string(message))
+		err = fmt.Errorf("can't unmarshal teonet command, error: %s", err.Error())
+		log.Println(err)
 		return
 	}
 	log.Println("got client command:", cmd.Id, cmd.Cmd.String(), "data len:",
 		len(cmd.Data))
 
 	// Process command
-	data, err := teo.processCommand(cmd, conn)
+	data, err = teo.processCommand(cmd, conn)
 	if err != nil {
 		log.Println("process command, error:", err)
-		return
-	}
-
-	// Write response to client
-	cmd.Data, cmd.Err = data, err
-	data, _ = cmd.MarshalBinary()
-	if err = teo.WriteMessage(conn, websocket.TextMessage,
-		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
-		log.Println("can't write message to client, error:", err)
 	}
 }
 
 // processCommand processes a Teonet command received from a client.
 // It handles different command types like Connect, Disconnect etc.
 // Returns the response data and error.
-func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd, conn *websocket.Conn) (data []byte,
-	err error) {
+func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
+	conn *websocket.Conn) (data []byte, err error) {
 
 	switch cmd.Cmd {
 
@@ -264,6 +297,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd, conn *websocket.
 			err  error
 		}
 		w := make(chan apiAnswer, 1)
+
 		// Get api client by name
 		api, ok := teo.apiClients.Get(apiPeerName)
 		if !ok {
@@ -273,11 +307,14 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd, conn *websocket.
 			)
 			return
 		}
+
 		// Send request to api peer
 		api.SendTo(apiCommand, apiCommandData, func(data []byte, err error) {
-			log.Println("got response from peer, len:", len(data), " err:", err)
+			log.Println("got response from peer, len:", len(data), " err:", err, string(data))
 			w <- apiAnswer{data, err}
 		})
+
+		// api.SendTo(apiCommand, apiCommandData)
 
 		// Get answer from api peer or timeout
 		var answer apiAnswer

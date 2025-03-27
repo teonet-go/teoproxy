@@ -17,15 +17,17 @@ import (
 // It contains a processMessage field which is a slice of functions to process
 // incoming WebSocket messages.
 type WsServer struct {
-	processMessage []func(conn *websocket.Conn, message []byte)
-	onClose        func(conn *websocket.Conn)
+	onMessage []func(conn *websocket.Conn, message []byte)
+	onOpen    func(conn *websocket.Conn)
+	onClose   func(conn *websocket.Conn)
 }
 
 // New creates a new WsServer instance with the provided message processing
 // functions. The processMessage functions will be called to handle each
 // incoming WebSocket message.
-func New(onClose func(conn *websocket.Conn), processMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
-	return &WsServer{processMessage: processMessage, onClose: onClose}
+func New(onOpen func(conn *websocket.Conn), onClose func(conn *websocket.Conn),
+	onMessage ...func(conn *websocket.Conn, message []byte)) *WsServer {
+	return &WsServer{onMessage: onMessage, onOpen: onOpen, onClose: onClose}
 }
 
 // HandleWebSocket handles websocket requests by upgrading
@@ -53,7 +55,12 @@ func (s *WsServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
+	// Client connection opened
 	log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
+	if s.onOpen != nil {
+		s.onOpen(conn)
+	}
+
 	for {
 		// Read message from client
 		_, message, err := conn.ReadMessage()
@@ -63,15 +70,16 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 		}
 
 		// Process message
-		if len(s.processMessage) == 0 {
+		if len(s.onMessage) == 0 {
 			processMessage(conn, message)
 			continue
 		}
-		for _, f := range s.processMessage {
+		for _, f := range s.onMessage {
 			f(conn, message)
 		}
 	}
 
+	// Client connection closed
 	log.Printf("ws client disconnected %p, %s", conn, conn.RemoteAddr())
 	if s.onClose != nil {
 		s.onClose(conn)
