@@ -1,4 +1,4 @@
-// Copyright 2023-2024 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
+// Copyright 2023-2025 Kirill Scherba <kirill@scherba.ru>. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/kirill-scherba/smap"
 	"github.com/teonet-go/teomon"
 	"github.com/teonet-go/teonet"
 	"github.com/teonet-go/teoproxy/ws/command"
@@ -38,8 +40,7 @@ type TeonetServer struct {
 	*teonet.Teonet
 	apiClients *APIClients
 	stream     *StreamAnswer
-
-	conn *websocket.Conn // Last client connection TODO: temporary property
+	conns      smap.Smap[string, *websocket.Conn]
 }
 
 // TeonetMonitor contains monitoring information to send to the Teonet monitor.
@@ -100,12 +101,16 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 		// On websocket client close connection func
 		func(conn *websocket.Conn) {
 			// log.Printf("ws client disconnected %p %v", conn, conn.RemoteAddr())
+			// Remove connection from connections map by connection
+			teo.delConn(conn)
+
+			// Remove connection from stream
 			teo.stream.RemoveConn(conn)
+
 		},
 
 		// On websocket message functions
 		func(conn *websocket.Conn, message []byte) {
-			teo.conn = conn
 			teo.processMessage(conn, message)
 		},
 	)
@@ -124,21 +129,36 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 		return false
 	}
 
-	log.Printf("got response in reader: id: %d, data len: %d, from %s %s", p.ID(),
-		len(p.Data()), c, string(p.Data()))
+	log.Printf("got response in reader: id: %d, data len: %d, from %s", p.ID(),
+		len(p.Data()), c)
+
+	// Got login and data from packet data
+	login, data, err := teo.getLogin(p.Data())
+	if err != nil {
+		log.Println("error:", err)
+		return false
+	}
+	fmt.Println("got login from packet data:", login)
+
+	// Get connection from connections map by login
+	conn, ok := teo.conns.Get(login)
+	if !ok {
+		log.Println("error: can't find connection for login:", login)
+		return false
+	}
 
 	// Send API response
 	cmd := &command.TeonetCmd{}
-	cmd.Id, cmd.Cmd, cmd.Data, cmd.Err = uint32(p.ID()), command.ApiSendTo, p.Data(), nil
+	cmd.Id, cmd.Cmd, cmd.Data, cmd.Err = uint32(p.ID()), command.ApiSendTo, data, nil
 
-	data, _ := cmd.MarshalBinary()
-	if err := teo.WriteMessage(teo.conn, websocket.TextMessage,
+	data, _ = cmd.MarshalBinary()
+	if err := teo.WriteMessage(conn, websocket.TextMessage,
 		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
 		log.Println("can't write message to client, error:", err)
 	}
 	return false
 
-	// Send stream response
+	// DODO: Send stream response
 	peer := c.String()
 	streem := strings.Split(string(p.Data()), "/")[0]
 	if conns, ok := teo.stream.Get(peer, streem); ok {
@@ -288,6 +308,11 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		apiCommand := splitData[1]
 		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
 
+		// Get login from message data and set conn to connections map
+		if err = teo.setConn(conn, apiCommandData); err != nil {
+			return
+		}
+
 		log.Println("send api command:", string(apiCommand), "to peer:",
 			apiPeerName, "data len:", len(apiCommandData))
 
@@ -332,6 +357,48 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 	}
 
 	return
+}
+
+// getLogin returns login and data from incoming message data.
+func (teo *TeonetServer) getLogin(data []byte) (login string, out []byte,
+	err error) {
+
+	idx := bytes.IndexByte(data, ',')
+	if idx < 0 {
+		err = fmt.Errorf("wrong login received")
+		out = data
+	} else {
+		login = string(data[:idx])
+		out = data[idx+1:]
+	}
+
+	return
+}
+
+// setConn sets websocket connection to connections map by login from incoming
+// message data.
+func (teo *TeonetServer) setConn(conn *websocket.Conn, data []byte) (err error) {
+
+	// Get login from message data
+	login, _, err := teo.getLogin(data)
+	if err != nil {
+		return
+	}
+
+	// Set conn to connections map
+	teo.conns.Set(login, conn)
+
+	return
+}
+
+// delConn deletes websocket connection from connections map by connection.
+func (teo *TeonetServer) delConn(conn *websocket.Conn) {
+	for login, c := range teo.conns.Range {
+		if c.(*websocket.Conn) == conn {
+			teo.conns.Delete(login)
+			break
+		}
+	}
 }
 
 // newAPIClients creates and initializes new APIClients and new StreamAnswer.

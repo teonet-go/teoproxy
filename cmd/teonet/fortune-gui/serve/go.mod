@@ -15,6 +15,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kirill-scherba/bslice v0.0.2 // indirect
+	github.com/kirill-scherba/smap v0.0.1 // indirect
 	github.com/kirill-scherba/stable v0.0.8 // indirect
 	github.com/teonet-go/teomon v0.5.14 // indirect
 	github.com/teonet-go/teonet v0.6.6 // indirect

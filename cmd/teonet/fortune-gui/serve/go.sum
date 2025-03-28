@@ -10,6 +10,8 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/kirill-scherba/bslice v0.0.2 h1:ZuP0jBWKB+a6l7J6yB5bmWdm3SB6m/nfE5hKpLksH+A=
 github.com/kirill-scherba/bslice v0.0.2/go.mod h1:oMZe3puDpM84VyI0S0qc2XrepyxKJIwEovbNRJPyuTw=
+github.com/kirill-scherba/smap v0.0.1 h1:kwTsMv8AJCnygDpa6gqRt6wqhmYtNUkKtfhowDYp2Rw=
+github.com/kirill-scherba/smap v0.0.1/go.mod h1:GaVZidNPdkCitwP7BX6JLjuQze0Qk/M5+RflOywgfwg=
 github.com/kirill-scherba/stable v0.0.8 h1:m0GM5FCx1SJkai1o6kfQI0lKUWeupQGTicqb8EIPorg=
 github.com/kirill-scherba/stable v0.0.8/go.mod h1:Le2T16xIQmb9c9xzDVSqf7bWvpzo1pbDQLeD0s7qxZU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
