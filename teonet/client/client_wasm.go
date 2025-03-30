@@ -143,7 +143,7 @@ func (teo *Teonet) WaitFrom(peer string, id uint32) (data []byte, err error) {
 	var answer resultData
 	select {
 	case answer = <-w:
-	case <-time.After(5 * time.Second):
+	case <-time.After(25 * time.Second):
 		answer = resultData{nil, fmt.Errorf("timeout")}
 	}
 	data, err = answer.data, answer.err

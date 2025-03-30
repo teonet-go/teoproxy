@@ -8,6 +8,7 @@ package server
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"strings"
@@ -133,7 +134,7 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 		len(p.Data()), c)
 
 	// Got login and data from packet data
-	login, data, err := teo.getLogin(p.Data())
+	login, _, data, err := teo.getLogin(p.Data())
 	if err != nil {
 		log.Println("error:", err)
 		return false
@@ -316,13 +317,6 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		log.Println("send api command:", string(apiCommand), "to peer:",
 			apiPeerName, "data len:", len(apiCommandData))
 
-		// Api answer struct
-		type apiAnswer struct {
-			data []byte
-			err  error
-		}
-		w := make(chan apiAnswer, 1)
-
 		// Get api client by name
 		api, ok := teo.apiClients.Get(apiPeerName)
 		if !ok {
@@ -334,23 +328,18 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		}
 
 		// Send request to api peer
-		api.SendTo(apiCommand, apiCommandData, func(data []byte, err error) {
-			log.Println("got response from peer, len:", len(data), " err:", err, string(data))
-			w <- apiAnswer{data, err}
-		})
+		id, _ := api.SendTo(apiCommand, apiCommandData)
 
-		// api.SendTo(apiCommand, apiCommandData)
-
-		// Get answer from api peer or timeout
-		var answer apiAnswer
-		select {
-		case answer = <-w:
-		case <-time.After(5 * time.Second):
-			answer = apiAnswer{nil, fmt.Errorf("timeout")}
+		// Wait answer 5 times with 5 second delay
+		for range 5 {
+			data, err = api.WaitFrom(apiCommand, uint32(id))
+			log.Println("got response from peer, len:", len(data), " err:", err)
+			if err == nil {
+				break
+			}
 		}
-		data, err = answer.data, answer.err
 
-	// Unknown command
+		// Unknown command
 	default:
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
 		log.Println("unknown command:", err)
@@ -360,16 +349,25 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 }
 
 // getLogin returns login and data from incoming message data.
-func (teo *TeonetServer) getLogin(data []byte) (login string, out []byte,
-	err error) {
+func (teo *TeonetServer) getLogin(indata []byte) (login string, id uint32,
+	data []byte, err error) {
 
-	idx := bytes.IndexByte(data, ',')
+	// Get uint32 id from data
+	if len(indata) < 4 {
+		err = fmt.Errorf("wrong packet received")
+		return
+	}
+	id = binary.LittleEndian.Uint32(indata[:4])
+	indata = indata[4:]
+
+	// Get login and data
+	idx := bytes.IndexByte(indata, ',')
 	if idx < 0 {
 		err = fmt.Errorf("wrong login received")
-		out = data
+		data = indata
 	} else {
-		login = string(data[:idx])
-		out = data[idx+1:]
+		login = string(indata[:idx])
+		data = indata[idx+1:]
 	}
 
 	return
@@ -380,7 +378,7 @@ func (teo *TeonetServer) getLogin(data []byte) (login string, out []byte,
 func (teo *TeonetServer) setConn(conn *websocket.Conn, data []byte) (err error) {
 
 	// Get login from message data
-	login, _, err := teo.getLogin(data)
+	login, _, _, err := teo.getLogin(data)
 	if err != nil {
 		return
 	}

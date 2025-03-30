@@ -139,7 +139,7 @@ func (ws *WsClient) Connect(onReconnected func()) (err error) {
 	// Wait for the WebSocket connection to be established or timeout
 	select {
 	case <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(25 * time.Second):
 		err = fmt.Errorf("timeout")
 	}
 
