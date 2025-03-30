@@ -130,21 +130,19 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 		return false
 	}
 
-	log.Printf("got response in reader: id: %d, data len: %d, from %s", p.ID(),
-		len(p.Data()), c)
-
-	// Got login and data from packet data
-	login, _, data, err := teo.getLogin(p.Data())
+	// Get login and data from packet data
+	login, _, data, err := teo.getLogin(p.Data(), true)
 	if err != nil {
 		log.Println("error:", err)
 		return false
 	}
-	fmt.Println("got login from packet data:", login)
+	log.Printf("got response in reader: id: %d, data len: %d, login: %s, from %s", p.ID(),
+		len(p.Data()), login, c)
 
 	// Get connection from connections map by login
 	conn, ok := teo.conns.Get(login)
 	if !ok {
-		log.Println("error: can't find connection for login:", login)
+		log.Println("error: can't find connection for login:", login, conn)
 		return false
 	}
 
@@ -333,13 +331,13 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		// Wait answer 5 times with 5 second delay
 		for range 5 {
 			data, err = api.WaitFrom(apiCommand, uint32(id))
-			log.Println("got response from peer, len:", len(data), " err:", err)
+			log.Println("got response from peer, id:", id, "len:", len(data), "err:", err)
 			if err == nil {
 				break
 			}
 		}
 
-		// Unknown command
+	// Unknown command
 	default:
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
 		log.Println("unknown command:", err)
@@ -349,16 +347,18 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 }
 
 // getLogin returns login and data from incoming message data.
-func (teo *TeonetServer) getLogin(indata []byte) (login string, id uint32,
-	data []byte, err error) {
+func (teo *TeonetServer) getLogin(indata []byte, getId ...bool) (login string,
+	id uint32, data []byte, err error) {
 
-	// Get uint32 id from data
-	if len(indata) < 4 {
-		err = fmt.Errorf("wrong packet received")
-		return
+	// Get uint32 id from data if getId is true
+	if len(getId) > 0 && getId[0] {
+		if len(indata) < 4 {
+			err = fmt.Errorf("wrong packet received")
+			return
+		}
+		id = binary.LittleEndian.Uint32(indata[:4])
+		indata = indata[4:]
 	}
-	id = binary.LittleEndian.Uint32(indata[:4])
-	indata = indata[4:]
 
 	// Get login and data
 	idx := bytes.IndexByte(indata, ',')
@@ -383,7 +383,13 @@ func (teo *TeonetServer) setConn(conn *websocket.Conn, data []byte) (err error) 
 		return
 	}
 
+	// Check login allready exists in connections map
+	if _, ok := teo.conns.Get(login); ok {
+		return
+	}
+
 	// Set conn to connections map
+	log.Printf("set login from packet data: '%s' %d\n", login, len(login))
 	teo.conns.Set(login, conn)
 
 	return
