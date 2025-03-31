@@ -56,7 +56,6 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	defer conn.Close()
 
 	// Client connection opened
-	log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
 	if s.onOpen != nil {
 		s.onOpen(conn)
 	}
@@ -80,7 +79,6 @@ func (s *WsServer) handleConnection(conn *websocket.Conn) {
 	}
 
 	// Client connection closed
-	log.Printf("ws client disconnected %p, %s", conn, conn.RemoteAddr())
 	if s.onClose != nil {
 		s.onClose(conn)
 	}

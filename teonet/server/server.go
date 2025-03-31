@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"iter"
 	"log"
 	"strings"
 	"sync"
@@ -41,7 +42,13 @@ type TeonetServer struct {
 	*teonet.Teonet
 	apiClients *APIClients
 	stream     *StreamAnswer
-	conns      smap.Smap[string, *websocket.Conn]
+
+	// conns stores ws connection by client login name. Used to send responses
+	// to subscription commands
+	conns smap.Smap[string, *websocket.Conn]
+
+	// peers stores peers by ws connection
+	peers smap.Smap[*websocket.Conn, *smap.Smap[string, any]]
 }
 
 // TeonetMonitor contains monitoring information to send to the Teonet monitor.
@@ -96,14 +103,16 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 
 		// On websocket client open connection func
 		func(conn *websocket.Conn) {
-			// log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
+			log.Printf("ws client connected %p %v", conn, conn.RemoteAddr())
 		},
 
 		// On websocket client close connection func
 		func(conn *websocket.Conn) {
-			// log.Printf("ws client disconnected %p %v", conn, conn.RemoteAddr())
-			// Remove connection from connections map by connection
-			teo.delConn(conn)
+			log.Printf("ws client disconnected %p %v", conn, conn.RemoteAddr())
+
+			// Remove connection from connections map by connection and send
+			// client.disconnected commands
+			teo.connDel(conn)
 
 			// Remove connection from stream
 			teo.stream.RemoveConn(conn)
@@ -119,6 +128,21 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 	return
 }
 
+// writeMessage writes a message to a websocket connection.
+func (teo *TeonetServer) writeMessage(conn *websocket.Conn, messageType int,
+	data []byte) error {
+	teo.Lock()
+	defer teo.Unlock()
+	return conn.WriteMessage(messageType, data)
+}
+
+// newAPIClients creates and initializes new APIClients and new StreamAnswer.
+func (teo *TeonetServer) newAPIClients() {
+	teo.apiClients = new(APIClients).Init()
+	teo.stream = new(StreamAnswer).Init()
+}
+
+// reader processes a Teonet packet received from the Teonet client.
 func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 	e *teonet.Event) bool {
 
@@ -151,7 +175,7 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 	cmd.Id, cmd.Cmd, cmd.Data, cmd.Err = uint32(p.ID()), command.ApiSendTo, data, nil
 
 	data, _ = cmd.MarshalBinary()
-	if err := teo.WriteMessage(conn, websocket.TextMessage,
+	if err := teo.writeMessage(conn, websocket.TextMessage,
 		[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
 		log.Println("can't write message to client, error:", err)
 	}
@@ -165,7 +189,7 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 		cmd.Data = p.Data()
 		data, _ := cmd.MarshalBinary()
 		for _, conn := range conns {
-			if err := teo.WriteMessage(conn, websocket.TextMessage,
+			if err := teo.writeMessage(conn, websocket.TextMessage,
 				[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
 				log.Printf("can't write message to client %p, error: %s", conn,
 					err)
@@ -177,14 +201,6 @@ func (teo *TeonetServer) reader(c *teonet.Channel, p *teonet.Packet,
 	}
 
 	return false
-}
-
-// WriteMessage writes a message to a websocket connection.
-func (teo *TeonetServer) WriteMessage(conn *websocket.Conn, messageType int,
-	data []byte) error {
-	teo.Lock()
-	defer teo.Unlock()
-	return conn.WriteMessage(messageType, data)
 }
 
 // processMessage processes a websocket message received from a client.
@@ -201,7 +217,7 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	defer func() {
 		cmd.Data, cmd.Err = data, err
 		data, _ = cmd.MarshalBinary()
-		if err = teo.WriteMessage(conn, websocket.TextMessage,
+		if err = teo.writeMessage(conn, websocket.TextMessage,
 			[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
 			log.Println("can't write message to client, error:", err)
 		}
@@ -307,8 +323,11 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		apiCommand := splitData[1]
 		apiCommandData := cmd.Data[len(apiPeerName)+1+len(apiCommand)+1:]
 
+		// Add apiPeerName to peers map
+		teo.peersSet(conn, apiPeerName)
+
 		// Get login from message data and set conn to connections map
-		if err = teo.setConn(conn, apiCommandData); err != nil {
+		if err = teo.connSet(conn, apiCommandData); err != nil {
 			return
 		}
 
@@ -373,9 +392,9 @@ func (teo *TeonetServer) getLogin(indata []byte, getId ...bool) (login string,
 	return
 }
 
-// setConn sets websocket connection to connections map by login from incoming
+// connSet sets websocket connection to connections map by login from incoming
 // message data.
-func (teo *TeonetServer) setConn(conn *websocket.Conn, data []byte) (err error) {
+func (teo *TeonetServer) connSet(conn *websocket.Conn, data []byte) (err error) {
 
 	// Get login from message data
 	login, _, _, err := teo.getLogin(data)
@@ -395,18 +414,71 @@ func (teo *TeonetServer) setConn(conn *websocket.Conn, data []byte) (err error) 
 	return
 }
 
-// delConn deletes websocket connection from connections map by connection.
-func (teo *TeonetServer) delConn(conn *websocket.Conn) {
-	for login, c := range teo.conns.Range {
+// connDel deletes websocket connection from connections map by connection and
+// sends client.disconnected command to peers to which some command was sent.
+func (teo *TeonetServer) connDel(conn *websocket.Conn) {
+	var removed bool
+
+	// Find connection in connections map and delete if exists
+	var login string
+	for l, c := range teo.conns.Range {
 		if c.(*websocket.Conn) == conn {
-			teo.conns.Delete(login)
+			teo.conns.Delete(l)
+			login = l.(string)
+			removed = true
 			break
 		}
 	}
+
+	// Skip if connection was not removed
+	if !removed {
+		return
+	}
+
+	// Send client.disconnected command to removed client
+	teo.connDisconnect(conn, login)
 }
 
-// newAPIClients creates and initializes new APIClients and new StreamAnswer.
-func (teo *TeonetServer) newAPIClients() {
-	teo.apiClients = new(APIClients).Init()
-	teo.stream = new(StreamAnswer).Init()
+// connDisconnect sends the client.disconnected command to those teonet peers to
+// which some command was sent.
+func (teo *TeonetServer) connDisconnect(conn *websocket.Conn, login string) {
+	// Send client.disconnected command to all peers to which some command was
+	// sent
+	for peer := range teo.peersRange(conn) {
+		cmd := &command.TeonetCmd{
+			Cmd:  command.ApiSendTo,
+			Data: fmt.Appendf(nil, "%s,cmd,%s,client.disconnected", peer, login),
+		}
+		teo.processCommand(cmd, conn)
+	}
+
+	// Delete all peers from peers map by connection
+	teo.peersDel(conn)
+}
+
+// peersSet adds peer to peers map by connection and peer address.
+func (teo *TeonetServer) peersSet(conn *websocket.Conn, peer string) {
+	p, ok := teo.peers.Get(conn)
+	if !ok {
+		p = smap.New[string, any]()
+		teo.peers.Set(conn, p)
+	}
+	p.LoadOrStore(peer, nil)
+}
+
+// peersDel deletes all peers from peers map by connection.
+func (teo *TeonetServer) peersDel(conn *websocket.Conn) {
+	teo.peers.Delete(conn)
+}
+
+// peersRange returns range of peers in peers map by connection.
+func (teo *TeonetServer) peersRange(conn *websocket.Conn) iter.Seq[string] {
+	p, _ := teo.peers.Get(conn)
+	return func(yield func(string) bool) {
+		for peer := range p.Range {
+			if !yield(peer.(string)) {
+				break
+			}
+		}
+	}
 }
