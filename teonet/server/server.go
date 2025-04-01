@@ -269,7 +269,7 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		teo.Lock()
 		defer teo.Unlock()
 		addr := string(cmd.Data)
-		if err = teo.ConnectTo(addr); err != nil {
+		if err = teo.ConnectTo(addr, teo.checkDisconnect); err != nil {
 			err = fmt.Errorf("can't connect to peer %s, error: %s", addr, err)
 			log.Println(err)
 			return
@@ -365,6 +365,37 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 	return
 }
 
+// checkDisconnect is teonet reader which checks if connected peer is disconnected.
+func (teo *TeonetServer) checkDisconnect(c *teonet.Channel, p *teonet.Packet, e *teonet.Event) bool {
+
+	if e.Event == teonet.EventDisconnected {
+		fmt.Println("peer disconnected:", c.Address())
+
+		// Get ws connection from connections map by peer name
+		for conn, peers := range teo.peers.Range {
+			for peer := range peers.Range {
+				if peer == c.Address() {
+					fmt.Println("send disconnected to ws conn:", conn.RemoteAddr())
+
+					// Create and marshal disconnect command
+					data, _ := command.TeonetCmd{
+						Cmd:  command.Disconnect,
+						Data: []byte(peer),
+					}.MarshalBinary()
+
+					// Send disconnect command to ws
+					if err := teo.writeMessage(conn, websocket.TextMessage,
+						[]byte(base64.StdEncoding.EncodeToString(data))); err != nil {
+						log.Println("can't write message to client, error:", err)
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 // getLogin returns login and data from incoming message data.
 func (teo *TeonetServer) getLogin(indata []byte, getId ...bool) (login string,
 	id uint32, data []byte, err error) {
@@ -422,10 +453,10 @@ func (teo *TeonetServer) connDel(conn *websocket.Conn) {
 	// Find connection in connections map and delete if exists
 	var login string
 	for l, c := range teo.conns.Range {
-		if c.(*websocket.Conn) == conn {
+		if c == conn {
 			teo.conns.Delete(l)
-			login = l.(string)
 			removed = true
+			login = l
 			break
 		}
 	}
@@ -463,7 +494,7 @@ func (teo *TeonetServer) peersSet(conn *websocket.Conn, peer string) {
 		p = smap.New[string, any]()
 		teo.peers.Set(conn, p)
 	}
-	p.LoadOrStore(peer, nil)
+	p.LoadOrStore(peer, struct{}{})
 }
 
 // peersDel deletes all peers from peers map by connection.
@@ -476,7 +507,7 @@ func (teo *TeonetServer) peersRange(conn *websocket.Conn) iter.Seq[string] {
 	p, _ := teo.peers.Get(conn)
 	return func(yield func(string) bool) {
 		for peer := range p.Range {
-			if !yield(peer.(string)) {
+			if !yield(peer) {
 				break
 			}
 		}

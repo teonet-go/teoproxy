@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/gorilla/websocket v1.5.3
+	github.com/kirill-scherba/smap v0.0.2
 	github.com/teonet-go/teomon v0.5.14
 	github.com/teonet-go/teonet v0.6.6
 )
