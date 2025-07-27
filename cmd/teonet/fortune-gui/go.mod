@@ -1,6 +1,6 @@
 module github.com/teonet-go/teoproxy/cmd/teonet/fortune-gui
 
-go 1.24.0
+go 1.24.5
 
 replace github.com/teonet-go/teoproxy => ../../..
 

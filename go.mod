@@ -1,6 +1,6 @@
 module github.com/teonet-go/teoproxy
 
-go 1.24.0
+go 1.24.5
 
 require (
 	github.com/gorilla/websocket v1.5.3
