@@ -32,7 +32,13 @@ const (
 // run in containerized environments like Google Cloud Run, listening on the
 // port specified by the PORT environment variable.
 //
-// publish: gcloud run deploy teo-ws-proxy --source . --region=europe-north1 --no-cpu-throttling --min-instances=1 --max-instances=1
+// publish one container running all time in Google Cloud Run:
+//
+//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1 --no-cpu-throttling --min-instances=1 --max-instances=1
+//
+// publish any containers running when thry need in Google Cloud Run:
+//
+//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1
 func main() {
 
 	// --- Configuration ---

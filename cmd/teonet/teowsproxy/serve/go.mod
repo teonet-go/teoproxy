@@ -1,3 +1,18 @@
 module github.com/teonet-go/teoproxy/cmd/teonet/teowsproxy/serve
 
 go 1.24.5
+
+require github.com/teonet-go/teoproxy v0.0.7
+
+require (
+	github.com/denisbrodbeck/machineid v1.0.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/kirill-scherba/bslice v0.0.2 // indirect
+	github.com/kirill-scherba/smap v0.0.2 // indirect
+	github.com/kirill-scherba/stable v0.0.8 // indirect
+	github.com/teonet-go/teomon v0.5.14 // indirect
+	github.com/teonet-go/teonet v0.6.6 // indirect
+	github.com/teonet-go/tru v0.0.18 // indirect
+	golang.org/x/sys v0.22.0 // indirect
+)
