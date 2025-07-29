@@ -34,11 +34,11 @@ const (
 //
 // publish one container running all time in Google Cloud Run:
 //
-//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1 --no-cpu-throttling --min-instances=1 --max-instances=1
+//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1 --no-cpu-throttling --min-instances=1 --max-instances=1 --timeout=3600 --session-affinity --concurrency=1000
 //
 // publish any containers running when thry need in Google Cloud Run:
 //
-//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1
+//	gcloud run deploy teo-ws-proxy --source . --region=europe-north1 --timeout=3600 --session-affinity --concurrency=1000
 func main() {
 
 	// --- Configuration ---
