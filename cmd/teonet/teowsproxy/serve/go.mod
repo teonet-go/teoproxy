@@ -2,7 +2,7 @@ module github.com/teonet-go/teoproxy/cmd/teonet/teowsproxy/serve
 
 go 1.25.1
 
-require github.com/teonet-go/teoproxy v0.0.7
+require github.com/teonet-go/teoproxy v0.0.8
 
 require (
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
