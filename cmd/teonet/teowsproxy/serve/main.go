@@ -57,7 +57,7 @@ func main() {
 		AppName:    appName,
 		AppShort:   appShort,
 		AppVersion: appVersion,
-	})
+	}, true)
 	if err != nil {
 		log.Fatalf("Create teonet proxy server error: %v", err)
 	}

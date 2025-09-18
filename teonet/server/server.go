@@ -40,8 +40,9 @@ type TeonetServer struct {
 	*sync.Mutex
 	*ws.WsServer
 	*teonet.Teonet
-	apiClients *APIClients
-	stream     *StreamAnswer
+	apiClients      *APIClients
+	stream          *StreamAnswer
+	processParallel bool
 
 	// conns stores ws connection by client login name. Used to send responses
 	// to subscription commands
@@ -66,9 +67,17 @@ type TeonetMonitor struct {
 // application name. The monitor parameter optionally configures connecting to a
 // Teonet monitor for metrics reporting. It returns the TeonetServer instance
 // and any error. As an exported function, this serves as the main constructor for
-// the TeonetServer type.
-func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error) {
+// the TeonetServer type. The processParallel parameter is an optional boolean
+// flag that specifies whether the server should process incomming ws commands
+// in parallel.
+func New(appShort string, monitor *TeonetMonitor, processParallel ...bool) (
+	teo *TeonetServer, err error) {
+
+	// Create TeonetServer instance, initialize mutex and set processParallel
 	teo = &TeonetServer{Mutex: new(sync.Mutex)}
+	if len(processParallel) > 0 {
+		teo.processParallel = processParallel[0]
+	}
 
 	// Init apiClients and stream objects
 	teo.newAPIClients()
@@ -121,6 +130,10 @@ func New(appShort string, monitor *TeonetMonitor) (teo *TeonetServer, err error)
 
 		// On websocket message functions
 		func(conn *websocket.Conn, message []byte) {
+			if teo.processParallel {
+				go teo.processMessage(conn, message)
+				return
+			}
 			teo.processMessage(conn, message)
 		},
 	)

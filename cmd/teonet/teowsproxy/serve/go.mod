@@ -1,6 +1,6 @@
 module github.com/teonet-go/teoproxy/cmd/teonet/teowsproxy/serve
 
-go 1.24.5
+go 1.25.1
 
 require github.com/teonet-go/teoproxy v0.0.7
 
