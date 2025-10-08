@@ -257,7 +257,7 @@ func (teo *TeonetServer) processMessage(conn *websocket.Conn, message []byte) {
 	// Process command
 	data, err = teo.processCommand(cmd, conn)
 	if err != nil {
-		log.Println("process command, error:", err)
+		log.Printf("process command %s, error: %s", cmd.Cmd.String(), err.Error())
 	}
 }
 
@@ -350,15 +350,23 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		// Get api client by name
 		api, ok := teo.apiClients.Get(apiPeerName)
 		if !ok {
-			err = fmt.Errorf(
-				"can't get api client, error: has not connected to peer api %s",
-				apiPeerName,
-			)
-			return
+			api, err = teo.tryReconnect(apiPeerName)
+			if err != nil {
+				err = fmt.Errorf(
+					"can't get api client %s, error: %s",
+					apiPeerName, err.Error(),
+				)
+				return
+			}
 		}
 
 		// Send request to api peer
-		id, _ := api.SendTo(apiCommand, apiCommandData)
+		var id int
+		id, err = api.SendTo(apiCommand, apiCommandData)
+		if err != nil {
+			err = fmt.Errorf("can't send api command, error: %s", err.Error())
+			return
+		}
 
 		// Wait answer 5 times with 5 second delay
 		for range 5 {
@@ -374,6 +382,29 @@ func (teo *TeonetServer) processCommand(cmd *command.TeonetCmd,
 		err = fmt.Errorf("unknown command: %s", cmd.Cmd.String())
 		log.Println("unknown command:", err)
 	}
+
+	return
+}
+
+// tryReconnect tries to reconnect to peer api.
+func (teo *TeonetServer) tryReconnect(addr string) (cli *teonet.APIClient,
+	err error) {
+
+	// Connect to peer
+	err = teo.ConnectTo(addr, teo.checkDisconnect)
+	if err != nil {
+		err = fmt.Errorf("can't connect to peer %s, error: %s",
+			addr, err.Error())
+		return
+	}
+
+	// Connect to peer api
+	if cli, err = teo.NewAPIClient(addr); err != nil {
+		err = fmt.Errorf("can't connect to peer %s api, error: %s",
+			addr, err.Error())
+		return
+	}
+	teo.apiClients.Add(addr, cli)
 
 	return
 }
